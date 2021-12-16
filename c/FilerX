@@ -4,16 +4,16 @@
 #include "kernel.h"
 #include "swis.h"
 
-#include <stdbool.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 
 char *strdup(const char *src)
 {
+    char *tgt;
     if (src == 0)
         return 0;
-    char *tgt = malloc(strlen(src)+1);
+    tgt = malloc(strlen(src)+1);
     return strcpy(tgt, src);
 }
 
@@ -28,21 +28,22 @@ static void add_drive(FS *fs, int drive)
     if (drive >=4 || fs->fd_names)
     {
         char buffer[48];
+        unsigned swinum;
+        char name[4];
+        char block[0x40];
+        char discname[12];
+        int i;
+        Drive *drv;
         strcpy(buffer, fs->name);
         strcat(buffer, "_DescribeDisc");
 
-        unsigned swinum;
         if (_swix(OS_SWINumberFromString, _IN(1) | _OUT(0), buffer, &swinum))
             return;
 
-        char name[4];
-        char block[0x40];
         sprintf(name, ":%d", drive);
         if (_swix(swinum, _INR(0,1), &name, &block))
             return;
 
-        char discname[12];
-        int i;
         for (i=0; i<10; ++i)
         {
             char c = block[0x16+i];
@@ -51,7 +52,7 @@ static void add_drive(FS *fs, int drive)
             if (c == 0) break;
         }
 
-        Drive *drv = malloc(sizeof(Drive));
+        drv = malloc(sizeof(Drive));
         drv->fs = fs;
         strcpy(drv->discname, discname);
 
@@ -69,14 +70,15 @@ static void add_drive(FS *fs, int drive)
 static void find_drives(FS *fs)
 {
     char buffer[32];
+    unsigned swinum;
+    unsigned floppies, winnies;
+    int flags, drive;
     strcpy(buffer, fs->name);
     strcat(buffer, "_Drives");
 
-    unsigned swinum;
     if (_swix(OS_SWINumberFromString, _IN(1) | _OUT(0), buffer, &swinum) != 0)
         return;
 
-    unsigned floppies, winnies;
     if (_swix(swinum, _OUTR(1,2), &floppies, &winnies) != 0)
         return;
 
@@ -85,7 +87,6 @@ static void find_drives(FS *fs)
     if (_swix(OS_SWINumberFromString, _IN(1) | _OUT(0), buffer, &swinum) != 0)
         return;
 
-    int flags, drive;
     for (drive = 0; drive < floppies; ++drive)
     {
         if (!_swix(swinum, _INR(0,1)|_OUT(2), 7, drive, &flags) && !(flags & 2))            add_drive(fs, drive);
@@ -98,13 +99,13 @@ static void find_drives(FS *fs)
 
 static const void add_fs(const char *name, bool fd_names)
 {
+    char buffer[32];
     FS *fs = malloc(sizeof(FS));
     strcpy(fs->name,   name);
     strcpy(fs->fvalidation, "Sfloppydisc");
     strcpy(fs->hvalidation, "Sharddisc");
     fs->fd_names = fd_names;
 
-    char buffer[32];
     strcpy(buffer, name);
     strcat(buffer, "_DiscOp");
 

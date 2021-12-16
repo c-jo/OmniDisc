@@ -62,13 +62,13 @@ static void make_item_indir(WimpMenuItem* item,
 
 static void make_menus(void)
 {
+    WimpMenu *menu = (WimpMenu*)&share_menu;
+    WimpMenuItem *items = menu->items;
     make_menu(&name_menu, "Disc name");
     make_item_indir(&name_menu.items[0], new_name, "A~$&%@\\^:.#*\x22| ", 11);
     name_menu.items[0].flags |=  WimpMenuItem_Writable | WimpMenuItem_Last;
 
-    WimpMenu *menu = (WimpMenu*)&share_menu;
     make_menu(menu, "Share style");
-    WimpMenuItem *items = menu->items;
     make_item_indir(&items[0], share_styles[0], "", 0);
     make_item_indir(&items[1], share_styles[1], "", 0);
     make_item_indir(&items[2], share_styles[2], "", 0);
@@ -108,8 +108,8 @@ static void create_icons(void)
     {
         unsigned icon;
         unsigned xsize,ysize;
-        get_icon_size(drive->validation+1, &xsize, &ysize);
         WimpCreateIconBlock cib;
+        get_icon_size(drive->validation+1, &xsize, &ysize);
         cib.window_handle  = - 5;
         cib.icon.bbox.xmin =   0;
         cib.icon.bbox.ymin = -16;
@@ -195,12 +195,13 @@ static void menu_selection(WimpMenuSelectionEvent *event)
 
 int main(int argc, char *argv[])
 {
+    int message_list[] = { 0 };
+    bool quit = false;
     UNUSED(argc);
     UNUSED(argv);
 
     _swi(Wimp_SlotSize, _INR(0,1), 16*1024, -1);
 
-    int message_list[] = { 0 };
     _swi(Wimp_Initialise, _INR(0,3) | _OUT(1),
              310, 0x4b534154, "FilerX", &message_list,
              &task_handle);
@@ -208,7 +209,6 @@ int main(int argc, char *argv[])
     make_menus();
     create_icons();
 
-    bool quit = false;
     while (!quit)
     {
         static char poll_block[256];
