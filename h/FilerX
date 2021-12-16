@@ -1,7 +1,11 @@
 #ifndef FILERX_H
 #define FILERX_H
 
+#ifdef NO_STDBOOL
+typedef enum {false, true} bool;
+#else
 #include <stdbool.h>
+#endif
 #include "Wimp.h"
 
 #define UNUSED(x) (void)x

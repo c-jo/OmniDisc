@@ -5,10 +5,12 @@
         IMPORT  main
         EXPORT  module_enter
 
-        AREA    |ModuleEnter$$Data|,DATA,NOINIT,READWRITE
+        AREA    |ModuleEnter$$Data|,DATA,NOINIT
+
+module_appstack_size * 32768
 
 module_appstack
-	SPACE	32768
+	SPACE	module_appstack_size
 module_appstacktop
 
 	AREA	|ModuleEnter$$Code|,CODE,READONLY
@@ -25,7 +27,7 @@ module_enter
 
 	ADD	sl, a4, #540
 	MOV     fp, #0
-	ADD	sp, a4, #module_appstacktop - module_appstack
+	ADD	sp, a4, #module_appstack_size
 	Push	"a1"
 	MOV	a2, sp
 	MOV	a1,#1
