@@ -1,0 +1,258 @@
+#include "FilerX.h"
+#include "swis.h"
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+
+static char *share_styles[] =
+    { "Not shared", "Share protected", "Share unprotected" };
+
+static unsigned tray_window = 0;
+
+static struct drive_menu_s
+{
+    WimpMenu menu;
+    WimpMenuItem more[5];
+} drive_menu;
+
+static Drive *menu_drive = 0;
+
+static WimpMenu name_menu;
+
+static char new_name[12] = { 0 };
+
+static struct share_menu_s
+{
+    WimpMenu menu;
+    WimpMenuItem more[2];
+} share_menu;
+
+static void make_menu(WimpMenu *menu, const char *title)
+{
+    sprintf(menu->title, title);
+    menu->title_fg    = 0x07;
+    menu->title_bg    = 0x02;
+    menu->work_fg     = 0x07;
+    menu->work_bg     = 0x00;
+    menu->item_width  = 0;
+    menu->item_height = 44;
+    menu->gap         = 0;
+}
+
+static void make_item(WimpMenuItem* item, const char *entry,
+                       void *sub_or_win, bool shaded)
+{
+    item->flags = 0x00;
+    item->submenu_or_window = sub_or_win ? sub_or_win : (void*)-1;
+    item->icon_flags = 0x07000001 | (shaded ? WimpIcon_Shaded : 0);
+    strcpy(item->icon_data.t,entry);
+}
+
+static void make_item_indir(WimpMenuItem* item,
+                            char *buffer, char *validation, int buflen)
+{
+    item->flags = 0x00;
+    item->submenu_or_window = (void*)-1;
+    item->icon_flags = 0x07000001 | WimpIcon_Indirected;
+    item->icon_data.it.buffer      = buffer;
+    item->icon_data.it.validation  = validation;
+    item->icon_data.it.buffer_size = buflen == 0 ? strlen(buffer) : buflen;
+}
+
+static void make_menus(void)
+{
+    make_menu(&name_menu, "Disc name");
+    make_item_indir(&name_menu.items[0], new_name, "A~$&%@\\^:.#*\x22| ", 11);
+    name_menu.items[0].flags |=  WimpMenuItem_Writable | WimpMenuItem_Last;
+
+    WimpMenu *menu = (WimpMenu*)&share_menu;
+    make_menu(menu, "Share style");
+    WimpMenuItem *items = menu->items;
+    make_item_indir(&items[0], share_styles[0], "", 0);
+    make_item_indir(&items[1], share_styles[1], "", 0);
+    make_item_indir(&items[2], share_styles[2], "", 0);
+    items[2].flags |= WimpMenuItem_Last;
+
+    menu = (WimpMenu*)&drive_menu;
+    make_menu(menu, "xxFS::x");
+
+    items = menu->items;
+    make_item(&items[0], "Name disc", &name_menu,   false);
+    make_item(&items[1], "Dismount",   NULL,        false);
+//    make_item(&items[2], "Format",     NULL,        true );
+    make_item(&items[2], "Backup...",  NULL,        true );
+    make_item(&items[3], "Share",     &share_menu,  false);
+    make_item(&items[4], "Verify...",  NULL,        true );
+    make_item(&items[5], "Free...",    NULL,        false);
+    items[5].flags |= WimpMenuItem_Last;
+}
+
+static void get_icon_size(const char *icon, unsigned *x, unsigned *y)
+{
+    unsigned width,height,mode,xeig,yeig;
+    _swi(Wimp_SpriteOp, _IN(0)|_IN(2)|_OUTR(3,4)|_OUT(6), 0x28,
+        icon, &width, &height, &mode);
+
+    _swi(OS_ReadModeVariable, _INR(0,1)|_OUT(2), mode, 4,  &xeig);
+    _swi(OS_ReadModeVariable, _INR(0,1)|_OUT(2), mode, 5,  &yeig);
+
+    *x = width  << xeig;
+    *y = height << yeig;
+}
+
+static void create_icons(void)
+{
+    Drive *drive = drives;
+    while (drive)
+    {
+        unsigned icon;
+        unsigned xsize,ysize;
+        get_icon_size(drive->validation+1, &xsize, &ysize);
+        WimpCreateIconBlock cib;
+        cib.window_handle  = - 5;
+        cib.icon.bbox.xmin =   0;
+        cib.icon.bbox.ymin = -16;
+        cib.icon.bbox.xmax =  xsize;
+        cib.icon.bbox.ymax =  20 + ysize;
+        cib.icon.flags     = 0x1700310b;
+        cib.icon.data.ist.buffer      = drive->discname;
+        cib.icon.data.ist.validation  = drive->validation;
+        cib.icon.data.ist.buffer_size = strlen(drive->discname);
+
+        _swix(Wimp_CreateIcon, _INR(0,1)|_OUT(0),
+            0x60000000, &cib, &icon);
+
+        drive->icon = icon;
+        drive = drive->next;
+    }
+}
+
+static void mouse_click(WimpMouseClickEvent *event)
+{
+    Drive *drive = 0;
+    if (event->window_handle == -2) // Icon bar
+    {
+        for (drive=drives; drive; drive = drive->next)
+            if (drive->icon == event->icon_handle)
+                break;
+    }
+
+    if (drive && event->buttons == 4) // Select click on drive
+    {
+        char cmd[48];
+        sprintf(cmd, "%%Filer_OpenDir %s::%s.$",
+                     drive->fs->name, drive->discname);
+        _swi(OS_CLI, _IN(0), cmd);
+    }
+
+    if (drive && event->buttons == 2) // Menu click on drive
+    {
+        int x = event->mouse_x;
+        int y = event->mouse_y;
+
+        if (event->window_handle == -2)
+        {
+            x -= 0x40;
+            y  = 96+44*6;
+        }
+        sprintf(drive_menu.menu.title, "%s::%d", drive->fs->name, drive->drive);
+        _swi(Wimp_CreateMenu, _INR(1,3), &drive_menu, x, y);
+        menu_drive = drive;
+    }
+}
+
+static void menu_selection(WimpMenuSelectionEvent *event)
+{
+    if (menu_drive)
+    {
+        switch (*event[0])
+        {
+        case 0: // Name Disc
+            if (event[1] == 0)
+            {
+                _swi(Wimp_ReportError, _INR(0,2), "0000Dismount", 1, 0);
+            }
+            break;
+        case 1: // Dismount
+            _swi(Wimp_ReportError, _INR(0,2), "0000Dismount", 1, 0);
+            break;
+        case 3: // Backup
+            break;
+        case 4: // Verify
+            break;
+        case 5: // Free
+            {
+                char cmd[64];
+                sprintf(cmd, "%%ShowFree -FS %s %d",
+                             menu_drive->fs->name, menu_drive->drive);
+                _swi(OS_CLI, _IN(0), &cmd);
+
+            }
+        }
+    }
+}
+
+int main(int argc, char *argv[])
+{
+    UNUSED(argc);
+    UNUSED(argv);
+
+    _swi(Wimp_SlotSize, _INR(0,1), 16*1024, -1);
+
+    int message_list[] = { 0 };
+    _swi(Wimp_Initialise, _INR(0,3) | _OUT(1),
+             310, 0x4b534154, "FilerX", &message_list,
+             &task_handle);
+
+    make_menus();
+    create_icons();
+
+    bool quit = false;
+    while (!quit)
+    {
+        static char poll_block[256];
+        static unsigned int reason, data, sender;
+        _swi(Wimp_Poll, _INR(0,1) | _IN(3) | _OUTR(0,2),
+                        0x400001, poll_block, &pollword,
+                        &reason, &data, &sender);
+
+        if (quit)
+            break;
+
+        switch (reason)
+        {
+        case 6: // Mouse Click
+            mouse_click((WimpMouseClickEvent*)poll_block);
+            break;
+
+        case 9: // Menu Selection
+            menu_selection((WimpMenuSelectionEvent*)poll_block);
+            break;
+
+        case 13: // Pollword Non-Zero
+            {
+                unsigned new_pw = 0;
+                pollword = new_pw;
+            }
+            break;
+
+        case 17: // User Message
+        case 18: // User Message Recorded
+            {
+            WimpUserMessageEvent *msg = (WimpUserMessageEvent*)poll_block;
+
+            if (msg->hdr.action_code == 0) // Quit
+            {
+                quit = true;
+                break;
+            }
+            
+            break;
+            }
+        }
+    }
+
+    _swi(Wimp_CloseDown, _INR(0,1), task_handle, 0x4b534154);
+    task_handle = 0;
+}

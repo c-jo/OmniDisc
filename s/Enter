@@ -1,0 +1,36 @@
+        GET     Hdr:ListOpts
+        GET     Hdr:Macros
+        GET     Hdr:System
+
+        IMPORT  main
+        EXPORT  module_enter
+
+        AREA    |ModuleEnter$$Data|,DATA,NOINIT,READWRITE
+
+module_appstack
+	SPACE	32768
+module_appstacktop
+
+	AREA	|ModuleEnter$$Code|,CODE,READONLY
+
+	; Entry  r0 = command tail
+	;	r12 = private word
+	;Exit	 r0 = return code from main()
+module_enter
+	LDR	a4, =module_appstack
+	LDR	ip, [r12]
+	LDMIB	ip, {a2-a3}
+	ADD	a4, a4, a3
+	STMIA	a4, {a2-a3}
+
+	ADD	sl, a4, #540
+	MOV     fp, #0
+	ADD	sp, a4, #module_appstacktop - module_appstack
+	Push	"a1"
+	MOV	a2, sp
+	MOV	a1,#1
+	BL	main
+
+	SWI	OS_Exit
+
+	END

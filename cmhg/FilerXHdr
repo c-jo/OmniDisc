@@ -1,0 +1,22 @@
+;
+; FilerX CMHG Header file
+;
+
+module-is-runnable:
+
+help-string:  FilerX 0.01
+
+title-string: FilerX
+
+initialisation-code: module_initialise
+
+finalisation-code: module_finalise
+
+library-enter-code: module_enter
+
+service-call-handler: module_service 0x49 0x4a
+
+command-keyword-table: module_cmd
+    Desktop_FilerX(min-args:0, max-args:0),
+    FilerX_AddFS(min-args:1, max-args:2),
+    FilerX_DriveIcon(min-args:2, max-args:3)
