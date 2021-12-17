@@ -1,7 +1,11 @@
 #ifndef ICON_H
 #define ICON_H
 
+#ifdef NO_STDBOOL
+typedef enum {false, true} bool;
+#else
 #include <stdbool.h>
+#endif
 
 typedef struct Icon_s {
     char fs[8];    // file system, or empty string

@@ -23,12 +23,16 @@ jobs:
     # The build will terminate if any command returns a non-0 return code or an error.
     script:
 
-      # Build the test
+      # Build the tests
       - echo +++ Tests
       - amu -f MakefileTestFindDrives
+      - amu -f MakefileTestIcon
 
-      # Run the test (which should at least not crash)
+      # Run the tests (which should at least not crash)
+      - echo + Test find drives
       - /aif32.TestFindDrives
+      - echo + Test icon selection
+      - /aif32.TestIcon
 
       # Build the module
       - echo +++ Module
