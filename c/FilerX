@@ -24,38 +24,16 @@ unsigned pollword;
 Drive *drives;
 FS* fses;
 
-static void add_drive(FS *fs, int drive)
+static void add_drive(FS *fs, int drive, const char *name)
 {
-    if (drive >=4 || fs->fd_names)
+    if (drive >=4 || name)
     {
-        char buffer[48];
-        unsigned swinum;
-        char name[4];
-        char block[0x40];
-        char discname[12];
-        int i;
         Drive *drv;
-        strcpy(buffer, fs->name);
-        strcat(buffer, "_DescribeDisc");
-
-        if (_swix(OS_SWINumberFromString, _IN(1) | _OUT(0), buffer, &swinum))
-            return;
-
-        sprintf(name, ":%d", drive);
-        if (_swix(swinum, _INR(0,1), &name, &block))
-            return;
-
-        for (i=0; i<10; ++i)
-        {
-            char c = block[0x16+i];
-            if (c == ' ') c = 0;
-            discname[i] = c;
-            if (c == 0) break;
-        }
 
         drv = malloc(sizeof(Drive));
         drv->fs = fs;
-        strcpy(drv->discname, discname);
+        strncpy(drv->discname, name, 10);
+        drv->discname[10] = '\0';
 
         drv->validation = drive >= 4 ? fs->hvalidation : fs->fvalidation;
 
@@ -71,7 +49,11 @@ static void add_drive(FS *fs, int drive)
 
 static void find_drives(FS *fs)
 {
-    find_filecore_module_drives(fs->name, (found_filecore_drive_f)add_drive, fs);
+    unsigned long flags = FFMD_REPORT_REMOVABLES | FFMD_REPORT_HARDDISCS | FFMD_NAME_HARDDISCS;
+    if (fs->fd_names)
+        flags |= FFMD_NAME_REMOVABLES;
+    find_filecore_module_drives(fs->name, flags,
+                                (found_filecore_drive_f)add_drive, fs);
 }
 
 
