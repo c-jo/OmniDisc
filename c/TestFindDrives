@@ -1,0 +1,40 @@
+/**
+ * Simple test code that exercises the FindDrives.
+ *
+ * Largely for manual testing.
+ */
+
+#include <stdlib.h>
+#include <stdio.h>
+
+#include "FindDrives.h"
+
+
+/**
+ * Simple call which reports found drives.
+ */
+void got_drive(void *private, int drive)
+{
+    printf("Found a drive %i\n", drive);
+}
+
+
+int main(int argc, char *argv[])
+{
+    char *filing_systems[] = {
+            "ADFS",
+            "SCSIFS",
+            "SDFS",
+            "RAMFS",
+            NULL
+        };
+    char **fs_ptr;
+    for (fs_ptr = filing_systems; *fs_ptr; fs_ptr++)
+    {
+        char *fs = *fs_ptr;
+        printf("Scanning %s\n", fs);
+        find_filecore_module_drives(fs, got_drive, NULL);
+    }
+
+    return 0;
+}

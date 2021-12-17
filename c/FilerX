@@ -1,6 +1,7 @@
 #include "kernel.h"
 #include "FilerXHdr.h"
 #include "FilerX.h"
+#include "FindDrives.h"
 #include "kernel.h"
 #include "swis.h"
 
@@ -64,44 +65,6 @@ static void add_drive(FS *fs, int drive)
         drv->next  = drives;
         drv->prev  = 0;
         drives = drv;
-    }
-}
-
-typedef void (*found_filecore_drive_f)(void *private,
-                                       int drive_number);
-
-
-static void find_filecore_module_drives(const char *modname,
-                                        found_filecore_drive_f drive_callback,
-                                        void *private)
-{
-    char buffer[32];
-    unsigned swinum;
-    unsigned floppies, winnies;
-    int flags, drive;
-    strcpy(buffer, modname);
-    strcat(buffer, "_Drives");
-
-    if (_swix(OS_SWINumberFromString, _IN(1) | _OUT(0), buffer, &swinum) != 0)
-        return;
-
-    if (_swix(swinum, _OUTR(1,2), &floppies, &winnies) != 0)
-        return;
-
-    strcpy(buffer, modname);
-    strcat(buffer, "_MiscOp");
-    if (_swix(OS_SWINumberFromString, _IN(1) | _OUT(0), buffer, &swinum) != 0)
-        return;
-
-    for (drive = 0; drive < floppies; ++drive)
-    {
-        if (!_swix(swinum, _INR(0,1)|_OUT(2), 7, drive, &flags) && !(flags & 2))
-            drive_callback(private, drive);
-    }
-    for (drive = 4; drive < 4+winnies; ++drive)
-    {
-        if (!_swix(swinum, _INR(0,1)|_OUT(2), 7, drive, &flags) && !(flags & 2))
-            drive_callback(private, drive);
     }
 }
 

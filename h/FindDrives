@@ -1,0 +1,24 @@
+/**
+ * Find which drives are available for a given filecore filing system.
+ */
+
+#ifndef FINDDRIVES_H
+#define FINDDRIVES_H
+
+typedef void (*found_filecore_drive_f)(void *private,
+                                       int drive_number);
+
+/*************************************************** Gerph *********
+ Function:      find_filecore_module_drives
+ Description:   Find which FileCore drives are available for a given FS,
+
+ Parameters:    modname-> module name, used for looking up SWI names
+                drive_callback -> function to call with the drive numbers
+                private-> the private value to pass to callback function
+ Returns:       none
+ ******************************************************************/
+void find_filecore_module_drives(const char *modname,
+                                 found_filecore_drive_f drive_callback,
+                                 void *private);
+
+#endif
