@@ -1,7 +1,10 @@
 # Makefile for TaskRunner
 
 COMPONENT   = FilerX
-OBJS        = FilerX Main Enter
+OBJS        = FilerX \
+			  Main \
+			  Enter \
+			  FindDrives
 CMHGDEPENDS = FilerX
 CUSTOMRES   = no
 

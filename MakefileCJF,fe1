@@ -35,11 +35,12 @@ LIBS       =
 CDEFINES   = -DNO_STDBOOL
 
 # Objects to build, using the format o.<name> (will be varied for build type)
-OBJS       = 			 \
+OBJS       = \
              o.Enter \
              o.FilerX \
              o.FilerXHdr \
              o.Main \
+             o.FindDrives \
 
 
 include CModule
