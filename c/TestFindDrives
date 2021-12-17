@@ -13,9 +13,9 @@
 /**
  * Simple call which reports found drives.
  */
-void got_drive(void *private, int drive)
+void got_drive(void *private, int drive, const char *name)
 {
-    printf("Found a drive %i\n", drive);
+    printf("Found a drive %i: %s\n", drive, name ? name : "<NULL>");
 }
 
 
@@ -33,7 +33,12 @@ int main(int argc, char *argv[])
     {
         char *fs = *fs_ptr;
         printf("Scanning %s\n", fs);
-        find_filecore_module_drives(fs, got_drive, NULL);
+        find_filecore_module_drives(fs,
+                                    (FFMD_REPORT_REMOVABLES
+                                        | FFMD_REPORT_HARDDISCS
+                                        | FFMD_NAME_REMOVABLES
+                                        | FFMD_NAME_HARDDISCS),
+                                    got_drive, NULL);
     }
 
     return 0;
