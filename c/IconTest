@@ -4,7 +4,7 @@
 
 #include "Icon.h"
 
-int main(void)
+void test_match(void)
 {
     Icon i1, i2;
     i1.prev = NULL; i1.next = &i2;
@@ -60,7 +60,21 @@ int main(void)
     // Fall back to default
     assert(!strcmp(icon_find(&i1, "SDFS",0,"Card0"),   "Sfloppydisc"));
     assert(!strcmp(icon_find(&i1, "SCSI",4,"BigDisc"), "Sharddisc"  ));
-
 }
 
+void test_command(void)
+{
+    Icon *icons = 0;
+    assert(0 == icon_command(&icons, "-fs ADFS -disc HardDisc4 switcher"));
+    assert(icons != 0);
+    assert(!strcmp(icons->fs,   "ADFS"));
+    assert(!strcmp(icons->disc, "HardDisc4"));
+    assert(!strcmp(icons->val,  "Sswitcher"));
+}
 
+int main(void)
+{
+    test_match();
+    test_command();
+    return 0;
+}

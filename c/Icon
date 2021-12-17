@@ -1,13 +1,47 @@
 #include <ctype.h>
+#include <stdlib.h>
+#include <string.h>
+#include "swis.h"
 
 #include "Icon.h"
-#include <stdio.h>
 
-int stricmp(const char *s1, const char *s2)
+static int stricmp(const char *s1, const char *s2)
 {
      while (*s1 != 0)
          if (toupper(*s1++) != toupper(*s2++)) return 1;
      return 0;
+}
+
+_kernel_oserror *icon_command(Icon **icons, const char *cmd)
+{
+    unsigned ra_buf[256];
+    _kernel_oserror *e = 0;
+    e = _swix(OS_ReadArgs, _INR(0,3),
+              "fs/K,disc/K,icon,delete/S,f/S,h/S", cmd, &ra_buf, 1024);
+    if (e)
+        return e;
+
+    if (ra_buf[3] == 0)
+    {
+        Icon *icon = malloc(sizeof(Icon));
+        icon->prev = *icons;
+        icon->next = NULL;
+        strcpy(icon->fs,   ra_buf[0] ? (char*)ra_buf[0] : "");
+        strcpy(icon->disc, ra_buf[1] ? (char*)ra_buf[1] : "");
+        if (ra_buf[2])
+        {
+            icon->val[0] = 'S';
+             strcpy(icon->val+1, (char*)ra_buf[2]);
+        }
+        else
+            icon->val[0] = 0;
+        *icons = icon;
+    }
+    else
+    {
+        // Delete
+    }
+    return 0;
 }
 
 int icon_match(Icon* icon, const char *fs, int drive, const char *discname)
@@ -26,7 +60,6 @@ int icon_match(Icon* icon, const char *fs, int drive, const char *discname)
 
     return 0;
 }
-
 
 const char *icon_find(Icon* icons, const char *fs, int drive, const char *discname)
 {
