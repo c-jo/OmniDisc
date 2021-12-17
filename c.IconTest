@@ -1,0 +1,67 @@
+#include <stdbool.h>
+#include <string.h>
+#include <stddef.h>
+#include <assert.h>
+
+#include "Icon.h"
+
+int main(void)
+{
+    Icon i1, i2;
+    i1.prev = NULL; i1.next = &i2;
+    i2.prev = &i1;  i2.next = NULL;
+
+    // Should match any ADFS drive
+    strcpy(i1.fs,    "ADFS");
+    strcpy(i1.disc,  "");
+    strcpy(i1.val,   "Stest1");
+    i1.floppy = true;
+    i1.winnie = true;
+
+    assert(icon_match(&i1,"ADFS",4,"HardDisc4" ) != -1);
+    assert(icon_match(&i1,"adfs",4,"HARDDISC4" ) != -1);
+    assert(icon_match(&i1,"ADFS",0,"14_14_Fri" ) != -1);
+    assert(icon_match(&i1,"ADFS",0,"14_14_Fri" ) == icon_match(&i1,"Adfs",1,""));
+    assert(icon_match(&i1,"SCSI",0,"Thumbdrive") == -1);
+    assert(icon_match(&i1,"SDFS",4,"CardOne"   ) == -1);
+
+    // Match hard drives only
+    i1.floppy = false;
+    assert(icon_match(&i1,"ADFS",4,"HardDisc4" ) != -1);
+    assert(icon_match(&i1,"adfs",0,"14_14_Fri" ) == -1);
+
+    // Match a disc name
+    i1.floppy = true;
+    strcpy(i1.disc, "15_30_Tue");
+    assert(icon_match(&i1,"ADFS",4,"HardDisc4" ) == -1);
+    assert(icon_match(&i1,"adfs",0,"15_30_Tue" ) != -1);
+
+    // Match a drive number
+    strcpy(i1.disc, ":4");
+    assert(icon_match(&i1,"ADFS",4,"HardDisc4" ) != -1);
+    assert(icon_match(&i1,"adfs",0,"15_30_Tue" ) == -1);
+
+    // A name match should be higher than drive number one
+    strcpy(i2.fs,   "ADFS");
+    strcpy(i2.disc, "HardDisc4");
+    strcpy(i2.val,  "Stest2");
+    i2.floppy = true;
+    i2.winnie = true;
+
+    assert(icon_match(&i2,"ADFS",4,"HardDisc4") > icon_match(&i1,"ADFS",4,"HardDisc4"));
+
+    // A drive match is higher than a FS one
+    strcpy(i2.disc, "");
+    assert(icon_match(&i1,"ADFS",4,"HardDisc4") > icon_match(&i2,"ADFS",4,"HardDisc4"));
+
+    // Find an icon
+    strcpy(i2.disc, "HardDisc4");
+    assert(!strcmp(icon_find(&i1, "ADFS",4,"HardDisc4"), "Stest2"));
+
+    // Fall back to default
+    assert(!strcmp(icon_find(&i1, "SDFS",0,"Card0"),   "Sfloppydisc"));
+    assert(!strcmp(icon_find(&i1, "SCSI",4,"BigDisc"), "Sharddisc"  ));
+
+}
+
+

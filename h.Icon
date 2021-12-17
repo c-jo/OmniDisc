@@ -1,0 +1,30 @@
+#ifndef ICON_H
+#define ICON_H
+
+#include <stdbool.h>
+
+typedef struct Icon_s {
+    char fs[8];    // file system, or empty string
+    char disc[12]; // Disc nane, :x or empty string
+    bool floppy;   // Apply to floppies
+    bool winnie;   // Apply to winnies
+    char val[14];  // Validitiy string (Siconname)
+
+    struct Icon_s *next;
+    struct Icon_s *prev;
+} Icon;
+
+// cmd is of form
+// (FS::) (Disc | Drive | -f | -h) (Icon | -delete)
+void icon_command(const char *cmd);
+
+// Returns a match value for the given icon with fs/disc/drive, or -1 for no match
+// The higher the number the better the match.
+int icon_match(Icon *icon, const char *fs, int drive, const char *discname);
+
+// Find the best icon for the given drive and return it's validation string. If
+// one cannot be found, return Sharddisc or Sfloppydisc (depending on drive)
+const char *icon_find(Icon* icons, const char *fs, int drive, const char *discname);
+
+#endif
+
