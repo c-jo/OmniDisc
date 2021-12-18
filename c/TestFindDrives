@@ -13,9 +13,11 @@
 /**
  * Simple call which reports found drives.
  */
-void got_drive(void *private, int drive, const char *name)
+void got_drive(void *private, int drive, const char *name, bool is_removeable)
 {
-    printf("Found a drive %i: %s\n", drive, name ? name : "<NULL>");
+    printf("Found a drive %i (%s): %s\n", drive,
+                                          is_removeable ? "removeable" : "fixed",
+                                          name ? name : "<NULL>");
 }
 
 
@@ -34,10 +36,10 @@ int main(int argc, char *argv[])
         char *fs = *fs_ptr;
         printf("Scanning %s\n", fs);
         find_filecore_module_drives(fs,
-                                    (FFMD_REPORT_REMOVABLES
-                                        | FFMD_REPORT_HARDDISCS
-                                        | FFMD_NAME_REMOVABLES
-                                        | FFMD_NAME_HARDDISCS),
+                                    (FFMD_REPORT_REMOVABLE
+                                        | FFMD_REPORT_FIXED
+                                        | FFMD_NAME_REMOVABLE
+                                        | FFMD_NAME_FIXED),
                                     got_drive, NULL);
     }
 

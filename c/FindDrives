@@ -8,6 +8,8 @@
 
 #include "FindDrives.h"
 
+#define DRIVE_MAX (8)
+
 
 /*******************************************************************
  Function:      read_drive_name
@@ -56,22 +58,25 @@ void find_filecore_module_drives(const char *modname,
                                  void *private)
 {
     char buffer[32];
-    unsigned swinum;
-    unsigned floppies, winnies;
+    unsigned swinum_drives;
+    unsigned swinum_miscop;
     unsigned swinum_describe;
-    int flags, drive;
+    unsigned floppies, winnies;
+    int first_fixed;
+    int drive;
+
     strcpy(buffer, modname);
     strcat(buffer, "_Drives");
 
-    if (_swix(OS_SWINumberFromString, _IN(1) | _OUT(0), buffer, &swinum) != 0)
+    if (_swix(OS_SWINumberFromString, _IN(1) | _OUT(0), buffer, &swinum_drives) != 0)
         return;
 
-    if (_swix(swinum, _OUTR(1,2), &floppies, &winnies) != 0)
+    if (_swix(swinum_drives, _OUTR(1,2), &floppies, &winnies) != 0)
         return;
 
     strcpy(buffer, modname);
     strcat(buffer, "_MiscOp");
-    if (_swix(OS_SWINumberFromString, _IN(1) | _OUT(0), buffer, &swinum) != 0)
+    if (_swix(OS_SWINumberFromString, _IN(1) | _OUT(0), buffer, &swinum_miscop) != 0)
         return;
 
     strcpy(buffer, modname);
@@ -80,30 +85,77 @@ void find_filecore_module_drives(const char *modname,
     if (_swix(OS_SWINumberFromString, _IN(1) | _OUT(0), buffer, &swinum_describe))
         swinum_describe = 0;
 
-    if (ffmd_flags & FFMD_REPORT_REMOVABLES)
+    /* Decide where we split the removeable disc numbers, based on the flags from the FS */
+    first_fixed = 4;
     {
-        for (drive = 0; drive < floppies; ++drive)
+        unsigned long *fs_descriptor;
+        unsigned long fs_flags = 0;
+        if (_swix(swinum_miscop, _IN(1)| _OUT(1),
+                                 6, /* FileCore_MiscOp_ReadInfo */
+                                 &fs_descriptor) == NULL)
+            fs_flags = *fs_descriptor; /* Flags are in the first word */
+
+        if (fs_flags & (1<<11 /* FileCore_DiscFlags_MountFloppiesLikeFixedDiscs */ ))
         {
-            if (!_swix(swinum, _INR(0,1)|_OUT(2), 7, drive, &flags) && !(flags & 2))
-            {
-                char *name = NULL;
-                if ((ffmd_flags & FFMD_NAME_REMOVABLES) && swinum_describe)
-                    name = read_drive_name(drive, swinum_describe, buffer);
-                drive_callback(private, drive, name);
-            }
+            /* Floppy discs range is really fixed discs */
+            first_fixed = 0;
+        }
+        else if (fs_flags & (1<<7 /* FileCore_DiscFlags_HardDiscsCanEject */ ))
+        {
+            /* Hard discs range is really floppies */
+            first_fixed = 8;
         }
     }
-    if (ffmd_flags & FFMD_REPORT_HARDDISCS)
+
+    for (drive = 0; drive < DRIVE_MAX; ++drive)
     {
-        for (drive = 4; drive < 4+winnies; ++drive)
+        bool is_removeable;
+        bool want_name;
+        unsigned long drive_status;
+        char *name;
+
+        is_removeable = (drive < first_fixed) ? true : false;
+        if (drive < 4 && drive >= floppies)
         {
-            if (!_swix(swinum, _INR(0,1)|_OUT(2), 7, drive, &flags) && !(flags & 2))
-            {
-                char *name = NULL;
-                if ((ffmd_flags & FFMD_NAME_HARDDISCS) && swinum_describe)
-                    name = read_drive_name(drive, swinum_describe, buffer);
-                drive_callback(private, drive, name);
-            }
+            /* This is in the range of floppy discs, and does not exist */
+            continue;
         }
+        if (drive >= 4 && drive >= winnies + 4)
+        {
+            /* This is in the range of hard discs, and does not exist */
+            continue;
+        }
+
+        /* We now know that the disc is configured as existing, and whether the
+         * disc is treated as removeable.
+         */
+        if (is_removeable)
+        {
+            if (!(ffmd_flags & FFMD_REPORT_REMOVABLE))
+                continue; /* They don't care about removables */
+            want_name = (ffmd_flags & FFMD_NAME_REMOVABLE) ? true : false;
+        }
+
+        if (!is_removeable)
+        {
+            if (!(ffmd_flags & FFMD_REPORT_FIXED))
+                continue; /* They don't care about fixed discs */
+            want_name = (ffmd_flags & FFMD_NAME_FIXED) ? true : false;
+        }
+
+        if (_swix(swinum_miscop, _INR(0,1)|_OUT(2), 7, drive, &drive_status) != NULL)
+            drive_status = 0;
+
+        if (drive_status & (1<<1 /* FileCore_MiscOp_ReadStatus_Absent) */))
+        {
+            /* Disc isn't really present - used for dynamic discs */
+            continue;
+        }
+
+        name = NULL;
+        if (want_name && swinum_describe)
+            name = read_drive_name(drive, swinum_describe, buffer);
+
+        drive_callback(private, drive, name, is_removeable);
     }
 }
