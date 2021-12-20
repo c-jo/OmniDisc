@@ -24,14 +24,12 @@ unsigned task_handle;
 unsigned pollword;
 
 Drive *drives;
-FS* fses;
-Icon* icons;
+FS    *fses;
+Icon  *icons;
 
-static void add_drive(FS *fs, int drive, const char *name)
+static void add_drive(FS *fs, int drive, const char *name, bool is_removeable)
 {
-    Drive *drv;
-
-    drv = malloc(sizeof(Drive));
+    Drive *drv = malloc(sizeof(Drive));
     drv->fs = fs;
     if (name)
         strncpy(drv->discname, name, 10);
@@ -52,9 +50,9 @@ static void add_drive(FS *fs, int drive, const char *name)
 
 static void find_drives(FS *fs)
 {
-    unsigned long flags = FFMD_REPORT_REMOVABLES | FFMD_REPORT_HARDDISCS | FFMD_NAME_HARDDISCS;
+    unsigned long flags = FFMD_REPORT_REMOVABLE | FFMD_REPORT_FIXED | FFMD_NAME_FIXED;
     if (fs->fd_names)
-        flags |= FFMD_NAME_REMOVABLES;
+        flags |= FFMD_NAME_REMOVABLE;
     find_filecore_module_drives(fs->name, flags,
                                 (found_filecore_drive_f)add_drive, fs);
 }
