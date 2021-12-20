@@ -148,7 +148,7 @@ static void mouse_click(WimpMouseClickEvent *event)
             sprintf(cmd, "%%Filer_OpenDir %s::%s.$",
                          drive->fs->name, drive->discname);
 
-        _swi(OS_CLI, _IN(0), cmd);
+        _swix(OS_CLI, _IN(0), cmd);
     }
 
     if (drive && event->buttons == 2) // Menu click on drive

@@ -112,9 +112,9 @@ _kernel_oserror *module_cmd(const char *arg_string, int argc, int cmd_no,
 {
     switch (cmd_no)
     {
-        case 0: return cmd_desktop (arg_string, pw);
-        case 1: return cmd_add_fs  (arg_string, pw);
-        case 2: return icon_command(&icons, arg_string);
+        case CMD_Desktop_FilerX:   return cmd_desktop (arg_string, pw);
+        case CMD_FilerX_AddFS:     return cmd_add_fs  (arg_string, pw);
+        case CMD_FilerX_DriveIcon: return icon_command(&icons, arg_string);
     }
 
     return 0;
