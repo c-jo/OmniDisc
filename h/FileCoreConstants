@@ -1,0 +1,92 @@
+/*******************************************************************
+ * File:        FileCoreConstants.h
+ * Purpose:     Constants for the FileCore SWIs
+ * Date:        2021-12-20
+ ******************************************************************/
+
+#ifndef FILECORE_CONSTANTS_H
+#define FILECORE_CONSTANTS_H
+
+#define FileCore_DiscFlags_HardDiscsNeedFIQ (1<<0)
+#define FileCore_DiscFlags_FloppiesNeedFIQ (1<<1)
+#define FileCore_DiscFlags_BackgroundTransfer (1<<2)
+#define FileCore_DiscFlags_UseScratchForTemporary (1<<3)
+#define FileCore_DiscFlags_HardDiscsCanMount (1<<4)
+#define FileCore_DiscFlags_HardDiscsCanPollChange (1<<5)
+#define FileCore_DiscFlags_FloppiesCanEject (1<<6)
+#define FileCore_DiscFlags_HardDiscsCanEject (1<<7)
+#define FileCore_DiscFlags_ReadDriveFlagsSupported (1<<8)
+#define FileCore_DiscFlags_SectorAddressingSupported (1<<9)
+#define FileCore_DiscFlags_InterfaceReturnsNewErrors (1<<10)
+#define FileCore_DiscFlags_MountFloppiesLikeFixedDiscs (1<<11)
+
+#define FileCore_LowSectorSequenceSides (1<<6)
+#define FileCore_LowSectorDoubleStep (1<<7)
+
+#define FileCore_FloppyOldStructure (1<<7)
+#define FileCore_FloppyOldMap (1<<8)
+
+#define FileCore_DiscOpGivenAlternativeDefectList (1<<4)
+#define FileCore_DiscOpGivenSectorList (1<<5)
+#define FileCore_DiscOpIgnoreEscape (1<<6)
+#define FileCore_DiscOpIgnoreTimeout (1<<7)
+#define FileCore_DiscOpAlternativeRecord 0xffffff00
+#define FileCore_DiscOpAlternativeRecordShift 6
+
+#define FileCore_CreateFloppyCount 255
+#define FileCore_CreateHardDiscCount 0xff00
+#define FileCore_CreateDefaultDrive 0xff0000
+#define FileCore_CreateNoDirState (1<<30)
+#define FileCore_CreateDefaultDriveShift 16
+#define FileCore_CreateFloppyCountShift 0
+#define FileCore_CreateHardDiscCountShift 8
+
+#define FileCore_DiscAddressDriveMask 0xe0000000
+#define FileCore_DiscAddressOffsetMask 0x1fffffff
+#define FileCore_DiscAddressDriveShift 29
+#define FileCore_DiscAddressOffsetShift 0
+
+#define FileCore_FormatL 128
+#define FileCore_FormatD 129
+#define FileCore_FormatE 130
+#define FileCore_FormatF 131
+
+// DiscOp numbers
+#define FileCore_DiscOp_Verify 0
+#define FileCore_DiscOp_ReadSectors 1
+#define FileCore_DiscOp_WriteSectors 2
+#define FileCore_DiscOp_ReadTrackOrId 3
+#define FileCore_DiscOp_WriteTrack 4
+#define FileCore_DiscOp_Seek 5
+#define FileCore_DiscOp_Restore 6
+#define FileCore_DiscOp_FloppyStepIn 7
+#define FileCore_DiscOp_FloppyStepOut 8
+#define FileCore_DiscOp_ReadSectorsViaCache 9
+#define FileCore_DiscOp_Specify 15
+
+// MiscOp numbers
+#define FileCore_MiscOp_Mount 0
+#define FileCore_MiscOp_PollChanged 1
+#define FileCore_MiscOp_LockDrive 2
+#define FileCore_MiscOp_UnlockDrive 3
+#define FileCore_MiscOp_PollPeriod 4
+#define FileCore_MiscOp_EjectDisc 5
+#define FileCore_MiscOp_ReadInfo 6
+#define FileCore_MiscOp_ReadStatus 7
+
+// Flags for MiscOp calls
+#define FileCore_MiscOp_ReadStatus_Locked (1<<0)
+#define FileCore_MiscOp_ReadStatus_Absent (1<<1)  // FIXME: Check source on this
+#define FileCore_MiscOp_PollChanged_NotChanged (1<<0)
+#define FileCore_MiscOp_PollChanged_MayBeChanged (1<<1)
+#define FileCore_MiscOp_PollChanged_Changed (1<<2)
+#define FileCore_MiscOp_PollChanged_Empty (1<<3)
+#define FileCore_MiscOp_PollChanged_Ready (1<<4)
+#define FileCore_MiscOp_PollChanged_FortyTrack (1<<5)
+#define FileCore_MiscOp_PollChanged_EmptyWorks (1<<6)
+#define FileCore_MiscOp_PollChanged_ChangedWorks (1<<7)
+#define FileCore_MiscOp_PollChanged_HighDensity (1<<8)
+#define FileCore_MiscOp_PollChanged_DensitySenseWorks (1<<9)
+#define FileCore_MiscOp_PollChanged_ReadyWorks (1<<10)
+
+#endif
