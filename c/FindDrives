@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include "swis.h"
 
+#include "FileCoreConstants.h"
 #include "FindDrives.h"
 
 #define DRIVE_MAX (8)
@@ -91,16 +92,16 @@ void find_filecore_module_drives(const char *modname,
         unsigned long *fs_descriptor;
         unsigned long fs_flags = 0;
         if (_swix(swinum_miscop, _IN(1)| _OUT(1),
-                                 6, /* FileCore_MiscOp_ReadInfo */
+                                 FileCore_MiscOp_ReadInfo,
                                  &fs_descriptor) == NULL)
             fs_flags = *fs_descriptor; /* Flags are in the first word */
 
-        if (fs_flags & (1<<11 /* FileCore_DiscFlags_MountFloppiesLikeFixedDiscs */ ))
+        if (fs_flags & FileCore_DiscFlags_MountFloppiesLikeFixedDiscs)
         {
             /* Floppy discs range is really fixed discs */
             first_fixed = 0;
         }
-        else if (fs_flags & (1<<7 /* FileCore_DiscFlags_HardDiscsCanEject */ ))
+        else if (fs_flags & FileCore_DiscFlags_HardDiscsCanEject)
         {
             /* Hard discs range is really floppies */
             first_fixed = 8;
@@ -146,7 +147,7 @@ void find_filecore_module_drives(const char *modname,
         if (_swix(swinum_miscop, _INR(0,1)|_OUT(2), 7, drive, &drive_status) != NULL)
             drive_status = 0;
 
-        if (drive_status & (1<<1 /* FileCore_MiscOp_ReadStatus_Absent) */))
+        if (drive_status & FileCore_MiscOp_ReadStatus_Absent)
         {
             /* Disc isn't really present - used for dynamic discs */
             continue;
