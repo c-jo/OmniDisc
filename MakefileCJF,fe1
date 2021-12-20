@@ -41,6 +41,7 @@ OBJS       = \
              o.FilerXHdr \
              o.Main \
              o.FindDrives \
+             o.Icon \
 
 
 include CModule
