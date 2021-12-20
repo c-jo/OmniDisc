@@ -62,9 +62,8 @@ static void find_drives(FS *fs)
 
 static const void add_fs(const char *name, bool fd_names)
 {
-    printf("Adding '%s'\n", name);
-
     FS *fs = malloc(sizeof(FS));
+
     strcpy(fs->name,   name);
     fs->fd_names = fd_names;
 
@@ -91,10 +90,11 @@ static _kernel_oserror*cmd_desktop(const char* arg_string, void *pw)
 
 static _kernel_oserror*cmd_add_fs(const char* arg_string, void *pw)
 {
-    UNUSED(pw);
-
     static unsigned ra_buf[64];
     _kernel_oserror *e = 0;
+
+    UNUSED(pw);
+
     e = _swix(OS_ReadArgs, _INR(0,3),
                   "fs/A,fdnames/S",
                   arg_string, &ra_buf, sizeof(ra_buf));
