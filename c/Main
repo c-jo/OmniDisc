@@ -117,7 +117,7 @@ static void create_icons(void)
         cib.icon.bbox.ymax =  20 + ysize;
         cib.icon.flags     = 0x1700310b;
         cib.icon.data.ist.buffer      = drive->discname;
-        cib.icon.data.ist.validation  = drive->validation;
+        cib.icon.data.ist.validation  = (char*)drive->validation;
         cib.icon.data.ist.buffer_size = strlen(drive->discname);
 
         _swix(Wimp_CreateIcon, _INR(0,1)|_OUT(0),
@@ -141,8 +141,13 @@ static void mouse_click(WimpMouseClickEvent *event)
     if (drive && event->buttons == 4) // Select click on drive
     {
         char cmd[48];
-        sprintf(cmd, "%%Filer_OpenDir %s::%s.$",
-                     drive->fs->name, drive->discname);
+        if (drive->discname[0] == ':')
+            sprintf(cmd, "%%Filer_OpenDir %s:%s.$",
+                         drive->fs->name, drive->discname);
+        else
+            sprintf(cmd, "%%Filer_OpenDir %s::%s.$",
+                         drive->fs->name, drive->discname);
+
         _swi(OS_CLI, _IN(0), cmd);
     }
 

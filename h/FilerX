@@ -8,6 +8,9 @@ typedef enum {false, true} bool;
 #endif
 #include "Wimp.h"
 
+#include "Icon.h"
+
+
 #define UNUSED(x) (void)x
 
 char *strdup(const char *src);
@@ -20,8 +23,6 @@ typedef struct FS_s
 {
     char      name[8];
     bool      fd_names;
-    char      fvalidation[16];
-    char      hvalidation[16];
 
     struct FS_s *next;
     struct FS_s *prev;
@@ -31,18 +32,20 @@ extern FS *fses;
 
 typedef struct Drive_s
 {           
-    FS       *fs;
-    unsigned  drive;
-    char      discname[12];
-    char     *validation;
-    int       position;
-    bool      iconbar;
-    int       icon;
+    FS         *fs;
+    unsigned    drive;
+    char        discname[12];
+    const char *validation;
+    int         position;
+    bool        iconbar;
+    int         icon;
 
     struct Drive_s *next;
     struct Drive_s *prev;
 } Drive;
 
 extern Drive *drives;
+
+extern Icon *icons;
 
 #endif

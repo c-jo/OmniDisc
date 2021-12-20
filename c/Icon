@@ -14,10 +14,11 @@ static int stricmp(const char *s1, const char *s2)
 
 _kernel_oserror *icon_command(Icon **icons, const char *cmd)
 {
-    unsigned ra_buf[256];
+    static unsigned ra_buf[64];
     _kernel_oserror *e = 0;
     e = _swix(OS_ReadArgs, _INR(0,3),
-              "fs/K,disc/K,icon,delete/S,f/S,h/S", cmd, &ra_buf, 1024);
+                  "fs/K,disc/K,icon,delete/S,f/S,h/S",
+                  cmd, &ra_buf, sizeof(ra_buf));
     if (e)
         return e;
 
