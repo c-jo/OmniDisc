@@ -2,7 +2,7 @@
 #define FILERX_H
 
 #ifdef NO_STDBOOL
-#idndef BOOL_DEFINED
+#ifndef BOOL_DEFINED
 #define BOOL_DEFINED
 typedef enum {false, true} bool;
 #endif
