@@ -33,13 +33,12 @@ static void add_drive(FS *fs, int drive, const char *name)
 
     drv = malloc(sizeof(Drive));
     drv->fs = fs;
-    strncpy(drv->discname, name, 10);
-
-    if (drive >=4 || name)
-        drv->discname[10] = '\0';
+    if (name)
+        strncpy(drv->discname, name, 10);
     else
-        sprintf(drv->discname, ":%d", drive);
+        sprintf(drv->discname, ":%i", drive);
 
+    drv->discname[10] = '\0';
     drv->validation = icon_find(icons, fs->name, drive, name);
 
     drv->position = 0;
@@ -140,7 +139,7 @@ _kernel_oserror *module_initialise(const char *cmd_tail, int podule_base,
     //add_fs("SDFS",   true );
 
     //_swi(TaskManager_StartTask,_IN(0),"Desktop_FilerX");
-    
+
     return NULL;
 }
 
