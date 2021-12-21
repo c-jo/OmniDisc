@@ -39,11 +39,13 @@ static void add_drive(FS *fs, int drive, const char *name, bool is_removeable)
     drv->discname[10] = '\0';
     drv->validation = icon_find(icons, fs->name, drive, name);
 
-    drv->position = 0;
-    drv->iconbar = true;
+    drv->position = 0; // **TODO** Determine position
+    drv->iconbar  = true;
+
     drv->drive = drive;
     drv->next  = drives;
     drv->prev  = 0;
+
     drives = drv;
 }
 
