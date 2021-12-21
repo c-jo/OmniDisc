@@ -26,13 +26,13 @@ jobs:
       # Build the tests
       - echo +++ Tests
       - amu -f MakefileTestFindDrives
-      - amu -f MakefileTestIcon
+      - amu -f MakefileTestIcons
 
       # Run the tests (which should at least not crash)
       - echo + Test find drives
       - /aif32.TestFindDrives
       - echo + Test icon selection
-      - /aif32.TestIcon
+      - /aif32.TestIcons
 
       # Build the module
       - echo +++ Module

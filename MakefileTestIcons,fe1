@@ -5,7 +5,7 @@
 #
 # Program specific options:
 #
-COMPONENT  = testicon
+COMPONENT  = testicons
 
 # Specifies additional targets for startup
 #INITTARGET = inittarget
@@ -34,7 +34,7 @@ LIBS       = ${CLIB}
 
 # Objects to build, using the format o.<name> (will be varied for build type)
 OBJS       = o.Icon \
-             o.IconTest \
+             o.TestIcons \
 
 # Space separated list of XML files for building documentation.
 #DOCSRC = <prm-in-xml-sources>

@@ -2,6 +2,8 @@
 #include "FilerXHdr.h"
 #include "FilerX.h"
 #include "FindDrives.h"
+#include "Icon.h"
+
 #include "kernel.h"
 #include "swis.h"
 
@@ -22,31 +24,29 @@ unsigned task_handle;
 unsigned pollword;
 
 Drive *drives;
-FS* fses;
+FS    *fses;
+Icon  *icons;
 
 static void add_drive(FS *fs, int drive, const char *name, bool is_removeable)
 {
-    if (drive >=4 || name)
-    {
-        Drive *drv;
+    Drive *drv = malloc(sizeof(Drive));
+    drv->fs = fs;
+    if (name)
+        strncpy(drv->discname, name, 10);
+    else
+        sprintf(drv->discname, ":%i", drive);
 
-        drv = malloc(sizeof(Drive));
-        drv->fs = fs;
-        if (name)
-            strncpy(drv->discname, name, 10);
-        else
-            sprintf(drv->discname, ":%i", drive);
-        drv->discname[10] = '\0';
+    drv->discname[10] = '\0';
+    drv->validation = icon_find(icons, fs->name, drive, name);
 
-        drv->validation = is_removeable ? fs->fvalidation : fs->hvalidation;
+    drv->position = 0; // **TODO** Determine position
+    drv->iconbar  = true;
 
-        drv->position = 0;
-        drv->iconbar = true;
-        drv->drive = drive;
-        drv->next  = drives;
-        drv->prev  = 0;
-        drives = drv;
-    }
+    drv->drive = drive;
+    drv->next  = drives;
+    drv->prev  = 0;
+
+    drives = drv;
 }
 
 
@@ -62,15 +62,10 @@ static void find_drives(FS *fs)
 
 static const void add_fs(const char *name, bool fd_names)
 {
-    char buffer[32];
     FS *fs = malloc(sizeof(FS));
-    strcpy(fs->name,   name);
-    strcpy(fs->fvalidation, "Sfloppydisc");
-    strcpy(fs->hvalidation, "Sharddisc");
-    fs->fd_names = fd_names;
 
-    strcpy(buffer, name);
-    strcat(buffer, "_DiscOp");
+    strcpy(fs->name,   name);
+    fs->fd_names = fd_names;
 
     fs->next = 0;
     fs->prev = fses;
@@ -93,12 +88,33 @@ static _kernel_oserror*cmd_desktop(const char* arg_string, void *pw)
 
 }
 
+static _kernel_oserror*cmd_add_fs(const char* arg_string, void *pw)
+{
+    static unsigned ra_buf[64];
+    _kernel_oserror *e = 0;
+
+    UNUSED(pw);
+
+    e = _swix(OS_ReadArgs, _INR(0,3),
+                  "fs/A,fdnames/S",
+                  arg_string, &ra_buf, sizeof(ra_buf));
+    if (e)
+        return e;
+
+
+    add_fs((char*)ra_buf[0], ra_buf[1] != 0);
+    return 0;
+
+}
+
 _kernel_oserror *module_cmd(const char *arg_string, int argc, int cmd_no,
                             void *pw)
 {
     switch (cmd_no)
     {
-        case 0: return cmd_desktop(arg_string, pw);
+        case CMD_Desktop_FilerX:   return cmd_desktop (arg_string, pw);
+        case CMD_FilerX_AddFS:     return cmd_add_fs  (arg_string, pw);
+        case CMD_FilerX_DriveIcon: return icon_command(&icons, arg_string);
     }
 
     return 0;
@@ -112,18 +128,17 @@ _kernel_oserror *module_initialise(const char *cmd_tail, int podule_base,
     UNUSED(private_word);
 
     task_handle = 0;
-    pollword = 0;
-    fses = 0;
-    drives = 0;
+    pollword    = 0;
 
-    add_fs("ADFS",   false);
-    add_fs("SCSIFS", true );
-    add_fs("SDFS",   true );
+    fses   = NULL;
+    drives = NULL;
+    icons  = NULL;
 
-    /* Convenience for when the module is loaded to automatically start the filer.
-     * If the desktop hasn't started, or there is no TaskManager this will be ignored.
-     */
-    _swix(TaskManager_StartTask,_IN(0),"Desktop_FilerX");
+    //add_fs("ADFS",   false);
+    //add_fs("SCSIFS", true );
+    //add_fs("SDFS",   true );
+
+    //_swi(TaskManager_StartTask,_IN(0),"Desktop_FilerX");
 
     return NULL;
 }
