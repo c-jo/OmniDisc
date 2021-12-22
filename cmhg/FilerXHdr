@@ -16,6 +16,8 @@ library-enter-code: module_enter
 
 service-call-handler: module_service 0x49 0x4a
 
+generic-veneers: upcall_entry/upcall_handler
+
 command-keyword-table: module_cmd
     Desktop_FilerX(min-args:0, max-args:0),
     FilerX_AddFS(min-args:1, max-args:2),

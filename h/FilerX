@@ -22,32 +22,29 @@ extern unsigned task_handle;
 
 extern unsigned pollword;
 
+typedef struct
+{
+    unsigned    flags;
+    char        discname[12];
+    const char *validation;
+    int         baricon;
+} Drive;
+
+#define FilerX_DriveFlags_Present 1
+#define FilerX_DriveFlags_IconBar 2
+
 typedef struct FS_s
 {
+    char      module[12];
     char      name[8];
     bool      fd_names;
+    unsigned  priority;
+    Drive     drive[8];
 
     struct FS_s *next;
-    struct FS_s *prev;
 } FS;
 
 extern FS *fses;
-
-typedef struct Drive_s
-{           
-    FS         *fs;
-    unsigned    drive;
-    char        discname[12];
-    const char *validation;
-    int         position;
-    bool        iconbar;
-    int         icon;
-
-    struct Drive_s *next;
-    struct Drive_s *prev;
-} Drive;
-
-extern Drive *drives;
 
 extern Icon *icons;
 

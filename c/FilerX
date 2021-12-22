@@ -11,6 +11,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#define UpcallV 0x1d
+
 char *strdup(const char *src)
 {
     char *tgt;
@@ -23,55 +25,71 @@ char *strdup(const char *src)
 unsigned task_handle;
 unsigned pollword;
 
-Drive *drives;
 FS    *fses;
 Icon  *icons;
 
 static void add_drive(FS *fs, int drive, const char *name, bool is_removeable)
 {
-    Drive *drv = malloc(sizeof(Drive));
-    drv->fs = fs;
-    if (name)
+    Drive *drv = &(fs->drive[drive]);
+
+   if (name)
         strncpy(drv->discname, name, 10);
     else
         sprintf(drv->discname, ":%i", drive);
 
     drv->discname[10] = '\0';
     drv->validation = icon_find(icons, fs->name, drive, name);
-
-    drv->position = 0; // **TODO** Determine position
-    drv->iconbar  = true;
-
-    drv->drive = drive;
-    drv->next  = drives;
-    drv->prev  = 0;
-
-    drives = drv;
 }
-
 
 static void find_drives(FS *fs)
 {
     unsigned long flags = FFMD_REPORT_REMOVABLE | FFMD_REPORT_FIXED | FFMD_NAME_FIXED;
     if (fs->fd_names)
         flags |= FFMD_NAME_REMOVABLE;
-    find_filecore_module_drives(fs->name, flags,
+    find_filecore_module_drives(fs->module, flags,
                                 (found_filecore_drive_f)add_drive, fs);
 }
 
+static _kernel_oserror err_bad_module = { 0, "Bad module name" };
 
-static const void add_fs(const char *name, bool fd_names)
+static _kernel_oserror* add_fs(const char *module, bool fd_names)
 {
-    FS *fs = malloc(sizeof(FS));
+    FS *fs;
+    unsigned miscop_swi;
+    int n;
+    _kernel_oserror *e;
+    char miscop[20];
+    unsigned *fcdb = 0;
 
-    strcpy(fs->name,   name);
+    if (strlen(module) > 11)
+        return &err_bad_module;
+
+    sprintf(miscop, "%s_MiscOp", module);
+
+    e = _swix(OS_SWINumberFromString, _IN(1)|_OUT(0), miscop, &miscop_swi);
+    if (e) return e;
+
+    e = _swix(miscop_swi, _IN(0)|_OUT(0), 6, &fcdb);
+    if (e) return e;
+
+    fs = malloc(sizeof(FS));
+    strcpy(fs->module,  module);
+    strcpy(fs->name,    (const char*)(fcdb[1]) );
     fs->fd_names = fd_names;
 
-    fs->next = 0;
-    fs->prev = fses;
-    fses = fs;
+    for (n=0; n<8; ++n)
+    {
+        fs->drive[n].flags       = 0;
+        fs->drive[n].discname[0] = 0;
+        fs->drive[n].validation  = 0;
+        fs->drive[n].baricon     = 0;
+    }
+
+    fs->next = fses;
+    fses     = fs;
 
     find_drives(fs);
+    return 0;
 }
 
 
@@ -102,8 +120,7 @@ static _kernel_oserror*cmd_add_fs(const char* arg_string, void *pw)
         return e;
 
 
-    add_fs((char*)ra_buf[0], ra_buf[1] != 0);
-    return 0;
+    return add_fs((char*)ra_buf[0], ra_buf[1] != 0);
 
 }
 
@@ -121,37 +138,29 @@ _kernel_oserror *module_cmd(const char *arg_string, int argc, int cmd_no,
 }
 
 _kernel_oserror *module_initialise(const char *cmd_tail, int podule_base,
-                                   void *private_word)
+                                   void *pw)
 {
     UNUSED(cmd_tail);
     UNUSED(podule_base);
-    UNUSED(private_word);
 
     task_handle = 0;
     pollword    = 0;
 
     fses   = NULL;
-    drives = NULL;
     icons  = NULL;
 
-    //add_fs("ADFS",   false);
-    //add_fs("SCSIFS", true );
-    //add_fs("SDFS",   true );
-
-    //_swi(TaskManager_StartTask,_IN(0),"Desktop_FilerX");
-
-    return NULL;
+    return _swix(OS_Claim, _INR(0,2), UpcallV, &upcall_entry, pw);
 }
 
-_kernel_oserror *module_finalise(int fatal, int podule_base, void *private_word)
+_kernel_oserror *module_finalise(int fatal, int podule_base, void *pw)
 {
     UNUSED(fatal);
     UNUSED(podule_base);
-    UNUSED(private_word);
 
     if (task_handle != 0 && task_handle != -1)
-        _swi(Wimp_CloseDown, _INR(0,1), task_handle, 0x4b534154);
+        _swix(Wimp_CloseDown, _INR(0,1), task_handle, 0x4b534154);
 
+    _swix(OS_Release, _INR(0,2), UpcallV, &upcall_entry, pw);
     return NULL;
 }
 
@@ -180,5 +189,38 @@ void module_service(int service_number, _kernel_swi_regs *r, void *private_word)
             task_handle = 0;
         break;
     }
+}
+
+_kernel_oserror *upcall_handler(_kernel_swi_regs *r, void *pw)
+{
+    unsigned upcall = r->r[0];
+    if (upcall == 24 || upcall == 25) // UpCall_DriveAdded UpCall_DriveRemoved
+    {
+        const char *drivespec = (const char*)r->r[1];
+
+        const char *pos   = strchr(drivespec, ':');
+        const char *disc  = pos+1;
+        unsigned    fslen = (pos-drivespec);
+        int         drive = -1;
+
+        if (strlen(disc) == 2 || disc[0] == ':')
+            drive = disc[1] - '0';
+
+        if (drive< 0 || drive > 7)
+            return 0;
+
+        FS *fs;
+        for (fs = fses; fs; fs = fs->next)
+        {
+            if ( strlen(fs->name) == fslen &&
+                !strncmp(drivespec, fs->name, fslen))
+            {
+                printf("UpCall %d, %s :%d\n", upcall, fs->name, drive);
+                //if (upcall == 24) fs_drive_added  (fs, drive);
+                //if (upcall == 25) fs_drive_removed(fs, drive);
+             }
+        }
+    }
+    return 0;
 }
 

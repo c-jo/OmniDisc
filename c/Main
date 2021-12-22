@@ -16,7 +16,11 @@ static struct drive_menu_s
     WimpMenuItem more[5];
 } drive_menu;
 
-static Drive *menu_drive = 0;
+static struct
+{
+    FS      *fs;
+    unsigned drive;
+} menu_drive = { 0, -0 };
 
 static WimpMenu name_menu;
 
@@ -103,55 +107,66 @@ static void get_icon_size(const char *icon, unsigned *x, unsigned *y)
 
 static void create_icons(void)
 {
-    Drive *drive = drives;
-    while (drive)
+    FS *fs;
+    for (fs = fses; fs; fs = fs->next)
     {
-        unsigned icon;
-        unsigned xsize,ysize;
-        WimpCreateIconBlock cib;
-        get_icon_size(drive->validation+1, &xsize, &ysize);
-        cib.window_handle  = - 5;
-        cib.icon.bbox.xmin =   0;
-        cib.icon.bbox.ymin = -16;
-        cib.icon.bbox.xmax =  xsize;
-        cib.icon.bbox.ymax =  20 + ysize;
-        cib.icon.flags     = 0x1700310b;
-        cib.icon.data.ist.buffer      = drive->discname;
-        cib.icon.data.ist.validation  = (char*)drive->validation;
-        cib.icon.data.ist.buffer_size = strlen(drive->discname);
+        int n;
+        for (n=0; n<8; ++n)
+        {
+            Drive *drive = &(fs->drive[n]);
+            unsigned xsize,ysize;
+            WimpCreateIconBlock cib;
 
-        _swix(Wimp_CreateIcon, _INR(0,1)|_OUT(0),
-            0x60000000, &cib, &icon);
+            if (drive->validation == NULL)
+                continue;
 
-        drive->icon = icon;
-        drive = drive->next;
+            get_icon_size(drive->validation+1, &xsize, &ysize);
+            cib.window_handle  = - 5;
+            cib.icon.bbox.xmin =   0;
+            cib.icon.bbox.ymin = -16;
+            cib.icon.bbox.xmax =  xsize;
+            cib.icon.bbox.ymax =  20 + ysize;
+            cib.icon.flags     = 0x1700310b;
+            cib.icon.data.ist.buffer      = drive->discname;
+            cib.icon.data.ist.validation  = (char*)drive->validation;
+            cib.icon.data.ist.buffer_size = strlen(drive->discname);
+
+            _swix(Wimp_CreateIcon, _INR(0,1)|_OUT(0),
+                      0x60000000, &cib, &drive->baricon);
+        }
     }
 }
 
 static void mouse_click(WimpMouseClickEvent *event)
 {
-    Drive *drive = 0;
-    if (event->window_handle == -2) // Icon bar
+    FS *fs = 0;
+    int drive = -1;
+    if (event->window_handle == -2 && event->icon_handle != -1) // Icon bar
     {
-        for (drive=drives; drive; drive = drive->next)
-            if (drive->icon == event->icon_handle)
-                break;
+        int n;
+        for (fs = fses; fs; fs = fs->next)
+            for (n = 0; n < 8; ++n)
+                if (fs->drive[n].baricon == event->icon_handle)
+                    drive = n;
     }
 
-    if (drive && event->buttons == 4) // Select click on drive
+    if (fs == NULL || drive == -1)
+        return;
+
+    if (event->buttons == 4) // Select click on drive
     {
         char cmd[48];
-        if (drive->discname[0] == ':')
+        if (fs->drive[drive].discname[0] == ':')
             sprintf(cmd, "%%Filer_OpenDir %s:%s.$",
-                         drive->fs->name, drive->discname);
+                         fs->name, fs->drive[drive].discname);
         else
             sprintf(cmd, "%%Filer_OpenDir %s::%s.$",
-                         drive->fs->name, drive->discname);
+                         fs->name, fs->drive[drive].discname);
 
         _swix(OS_CLI, _IN(0), cmd);
     }
 
-    if (drive && event->buttons == 2) // Menu click on drive
+    if (event->buttons == 2) // Menu click on drive
     {
         int x = event->mouse_x;
         int y = event->mouse_y;
@@ -161,15 +176,16 @@ static void mouse_click(WimpMouseClickEvent *event)
             x -= 0x40;
             y  = 96+44*6;
         }
-        sprintf(drive_menu.menu.title, "%s::%d", drive->fs->name, drive->drive);
+        sprintf(drive_menu.menu.title, "%s::%d", fs->name, drive);
         _swi(Wimp_CreateMenu, _INR(1,3), &drive_menu, x, y);
-        menu_drive = drive;
+        menu_drive.fs    = fs;
+        menu_drive.drive = drive;
     }
 }
 
 static void menu_selection(WimpMenuSelectionEvent *event)
 {
-    if (menu_drive)
+    if (menu_drive.fs != NULL && menu_drive.drive != -1)
     {
         switch (*event[0])
         {
@@ -190,11 +206,13 @@ static void menu_selection(WimpMenuSelectionEvent *event)
             {
                 char cmd[64];
                 sprintf(cmd, "%%ShowFree -FS %s %d",
-                             menu_drive->fs->name, menu_drive->drive);
-                _swi(OS_CLI, _IN(0), &cmd);
+                             menu_drive.fs->name, menu_drive.drive);
+                _swix(OS_CLI, _IN(0), &cmd);
 
             }
         }
+        menu_drive.fs = 0;
+        menu_drive.drive = -1;
     }
 }
 

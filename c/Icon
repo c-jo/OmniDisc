@@ -25,8 +25,11 @@ _kernel_oserror *icon_command(Icon **icons, const char *cmd)
     if (ra_buf[3] == 0)
     {
         Icon *icon = malloc(sizeof(Icon));
-        icon->prev = *icons;
-        icon->next = NULL;
+        icon->prev = 0;
+        icon->next = *icons;
+        if (icon->next)
+            icon->next->prev = icon;
+
         strcpy(icon->fs,   ra_buf[0] ? (char*)ra_buf[0] : "");
         strcpy(icon->disc, ra_buf[1] ? (char*)ra_buf[1] : "");
         if (ra_buf[2])
@@ -36,6 +39,7 @@ _kernel_oserror *icon_command(Icon **icons, const char *cmd)
         }
         else
             icon->val[0] = 0;
+
         *icons = icon;
     }
     else
