@@ -149,10 +149,11 @@ _kernel_oserror *module_initialise(const char *cmd_tail, int podule_base,
 
 _kernel_oserror *module_finalise(int fatal, int podule_base, void *pw)
 {
-    UNUSED(fatal);
-    UNUSED(podule_base);
     FS *fs = fses;
     Icon *icon = icons;
+
+    UNUSED(fatal);
+    UNUSED(podule_base);
 
     if (task_handle != 0 && task_handle != -1)
         _swix(Wimp_CloseDown, _INR(0,1), task_handle, 0x4b534154);
