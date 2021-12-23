@@ -120,7 +120,7 @@ static _kernel_oserror*cmd_add_fs(const char* arg_string, void *pw)
         return e;
 
 
-    return add_fs((char*)ra_buf[0], ra_buf[1] != 0);
+    return add_fs((char*)ra_buf[0], ra_buf[1] != 0 ? true : false);
 
 }
 
@@ -202,6 +202,7 @@ _kernel_oserror *upcall_handler(_kernel_swi_regs *r, void *pw)
         const char *disc  = pos+1;
         unsigned    fslen = (pos-drivespec);
         int         drive = -1;
+        FS *fs;
 
         if (strlen(disc) == 2 || disc[0] == ':')
             drive = disc[1] - '0';
@@ -209,7 +210,6 @@ _kernel_oserror *upcall_handler(_kernel_swi_regs *r, void *pw)
         if (drive< 0 || drive > 7)
             return 0;
 
-        FS *fs;
         for (fs = fses; fs; fs = fs->next)
         {
             if ( strlen(fs->name) == fslen &&
