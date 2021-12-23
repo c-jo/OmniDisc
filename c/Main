@@ -166,10 +166,18 @@ static void mouse_click(WimpMouseClickEvent *event)
     if (event->window_handle == -2 && event->icon_handle != -1) // Icon bar
     {
         int n;
-        for (fs = fses; fs; fs = fs->next)
+        FS *f;
+        for (f = fses; f; f = f->next)
+        {
             for (n = 0; n < 8; ++n)
-                if (fs->drive[n].baricon == event->icon_handle)
+            {
+                if (f->drive[n].baricon == event->icon_handle)
+                {
+                    fs = f;
                     drive = n;
+                }
+            }
+        }
     }
 
     if (fs == NULL || drive == -1)
