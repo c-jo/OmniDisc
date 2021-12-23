@@ -22,6 +22,10 @@ extern unsigned task_handle;
 
 extern unsigned pollword;
 
+#define Pollword_FS    0x01
+#define Pollword_Drive 0x02
+#define Pollword_Icon  0x04
+
 typedef struct
 {
     unsigned    flags;
@@ -30,8 +34,8 @@ typedef struct
     int         baricon;
 } Drive;
 
-#define FilerX_DriveFlags_Present 1
-#define FilerX_DriveFlags_IconBar 2
+#define DriveFlags_Present 1
+#define DriveFlags_IconBar 2
 
 typedef struct FS_s
 {

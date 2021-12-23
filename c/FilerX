@@ -28,6 +28,50 @@ unsigned pollword;
 FS    *fses;
 Icon  *icons;
 
+/*******************************************************************
+ Function:      fs_drive_name
+ Description:   Read the name of a drive
+ Parameters:    FS  => FS info structure
+                drive = drive number
+ Returns:       pointer to the drive name or NULL. This pointer is
+                only valid until the next call.
+ ******************************************************************/
+static char *fs_drive_name(FS* fs, int drive)
+{
+    static char buffer[12];
+
+    char disc_record[0x40] = {0};
+    char name[32];
+    int i;
+
+    unsigned swinum_desc;
+
+    sprintf(name, "%s_DescribeDisc", fs->module);
+
+    if (_swix(OS_SWINumberFromString, _IN(1)|_OUT(0), name, &swinum_desc))
+        return NULL; // Error doing SWI lookup
+
+    if (drive < 4 && !fs->fd_names)
+        return NULL; // Floppy disc
+
+    sprintf(name, ":%d", drive);
+    if (_swix(swinum_desc, _INR(0,1), &name, &disc_record))
+       return NULL; // Error calling describe disc
+
+    for (i=0; i<10; ++i)
+    {
+        char c = disc_record[0x16+i];
+        if (c == ' ' || c == '\0')
+            break;
+
+        buffer[i] = c;
+    }
+    buffer[i] = '\0'; // Terminate string
+
+    return buffer;
+}
+
+
 static void add_drive(FS *fs, int drive, const char *name, bool is_removeable)
 {
     Drive *drv = &(fs->drive[drive]);
@@ -39,6 +83,17 @@ static void add_drive(FS *fs, int drive, const char *name, bool is_removeable)
 
     drv->discname[10] = '\0';
     drv->validation = icon_find(icons, fs->name, drive, name);
+
+    pollword |= Pollword_Drive;
+    printf("Adding drive %s %d %s\n", fs->name, drive, name);
+}
+
+static void remove_drive(FS *fs, int drive)
+{
+    Drive *drv = &(fs->drive[drive]);
+    drv->validation = NULL;
+
+    pollword |= Pollword_Drive;
 }
 
 static void find_drives(FS *fs)
@@ -79,20 +134,19 @@ static _kernel_oserror* add_fs(const char *module, bool fd_names)
 
     for (n=0; n<8; ++n)
     {
-        fs->drive[n].flags       = 0;
-        fs->drive[n].discname[0] = 0;
-        fs->drive[n].validation  = 0;
-        fs->drive[n].baricon     = 0;
+        fs->drive[n].flags       =  0;
+        fs->drive[n].discname[0] =  0;
+        fs->drive[n].validation  =  0;
+        fs->drive[n].baricon     = -1;
     }
 
     fs->next = fses;
     fses     = fs;
 
     find_drives(fs);
+    pollword |= Pollword_FS;
     return 0;
 }
-
-
 
 static _kernel_oserror*cmd_desktop(const char* arg_string, void *pw)
 {
@@ -119,8 +173,7 @@ static _kernel_oserror*cmd_add_fs(const char* arg_string, void *pw)
     if (e)
         return e;
 
-
-    return add_fs((char*)ra_buf[0], ra_buf[1] != 0 ? true : false);
+    return add_fs((char*)ra_buf[0], ra_buf[1] != 0);
 
 }
 
@@ -129,11 +182,15 @@ _kernel_oserror *module_cmd(const char *arg_string, int argc, int cmd_no,
 {
     switch (cmd_no)
     {
-        case CMD_Desktop_FilerX:   return cmd_desktop (arg_string, pw);
-        case CMD_FilerX_AddFS:     return cmd_add_fs  (arg_string, pw);
-        case CMD_FilerX_DriveIcon: return icon_command(&icons, arg_string);
-    }
+        case CMD_Desktop_FilerX:
+            return cmd_desktop (arg_string, pw);
+        case CMD_FilerX_AddFS:
+            return cmd_add_fs(arg_string, pw);
 
+        case CMD_FilerX_DriveIcon:
+            pollword |= Pollword_Icon;
+            return icon_command(&icons, arg_string);
+    }
     return 0;
 }
 
@@ -215,9 +272,11 @@ _kernel_oserror *upcall_handler(_kernel_swi_regs *r, void *pw)
             if ( strlen(fs->name) == fslen &&
                 !strncmp(drivespec, fs->name, fslen))
             {
-                printf("UpCall %d, %s :%d\n", upcall, fs->name, drive);
-                //if (upcall == 24) fs_drive_added  (fs, drive);
-                //if (upcall == 25) fs_drive_removed(fs, drive);
+                if (upcall == 24)
+                    add_drive(fs, drive, fs_drive_name(fs, drive), false);
+
+                if (upcall == 25)
+                    remove_drive(fs, drive);
              }
         }
     }

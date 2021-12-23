@@ -105,7 +105,42 @@ static void get_icon_size(const char *icon, unsigned *x, unsigned *y)
     *y = height << yeig;
 }
 
-static void create_icons(void)
+static void create_icons(Drive *drive)
+{
+    if (drive->baricon == -1)
+    {
+        unsigned xsize,ysize;
+        WimpCreateIconBlock cib;
+
+        get_icon_size(drive->validation+1, &xsize, &ysize);
+        cib.window_handle  = - 5;
+        cib.icon.bbox.xmin =   0;
+        cib.icon.bbox.ymin = -16;
+        cib.icon.bbox.xmax =  xsize;
+        cib.icon.bbox.ymax =  20 + ysize;
+        cib.icon.flags     = 0x1700310b;
+        cib.icon.data.ist.buffer      = drive->discname;
+        cib.icon.data.ist.validation  = (char*)drive->validation;
+        cib.icon.data.ist.buffer_size = strlen(drive->discname);
+
+        _swix(Wimp_CreateIcon, _INR(0,1)|_OUT(0),
+                  0x60000000, &cib, &drive->baricon);
+    }
+}
+
+static void remove_icons(Drive *drive)
+{
+    if (drive->baricon != -1)
+    {
+        WimpDeleteIconBlock dib;
+        dib.window_handle = -2;
+        dib.icon_handle   = drive->baricon;
+        _swix(Wimp_DeleteIcon, _IN(1), &dib);
+        drive->baricon = -1;
+    }
+}
+
+static void update_icons(void)
 {
     FS *fs;
     for (fs = fses; fs; fs = fs->next)
@@ -114,25 +149,12 @@ static void create_icons(void)
         for (n=0; n<8; ++n)
         {
             Drive *drive = &(fs->drive[n]);
-            unsigned xsize,ysize;
-            WimpCreateIconBlock cib;
 
             if (drive->validation == NULL)
-                continue;
+                remove_icons(drive);
+            else
+                create_icons(drive);
 
-            get_icon_size(drive->validation+1, &xsize, &ysize);
-            cib.window_handle  = - 5;
-            cib.icon.bbox.xmin =   0;
-            cib.icon.bbox.ymin = -16;
-            cib.icon.bbox.xmax =  xsize;
-            cib.icon.bbox.ymax =  20 + ysize;
-            cib.icon.flags     = 0x1700310b;
-            cib.icon.data.ist.buffer      = drive->discname;
-            cib.icon.data.ist.validation  = (char*)drive->validation;
-            cib.icon.data.ist.buffer_size = strlen(drive->discname);
-
-            _swix(Wimp_CreateIcon, _INR(0,1)|_OUT(0),
-                      0x60000000, &cib, &drive->baricon);
         }
     }
 }
@@ -230,7 +252,6 @@ int main(int argc, char *argv[])
              &task_handle);
 
     make_menus();
-    create_icons();
 
     while (!quit)
     {
@@ -255,8 +276,8 @@ int main(int argc, char *argv[])
 
         case 13: // Pollword Non-Zero
             {
-                unsigned new_pw = 0;
-                pollword = new_pw;
+                if (pollword & Pollword_Drive) update_icons();
+                pollword = 0;
             }
             break;
 
