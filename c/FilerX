@@ -13,15 +13,6 @@
 
 #define UpcallV 0x1d
 
-char *strdup(const char *src)
-{
-    char *tgt;
-    if (src == 0)
-        return 0;
-    tgt = malloc(strlen(src)+1);
-    return strcpy(tgt, src);
-}
-
 unsigned task_handle;
 unsigned pollword;
 
@@ -50,6 +41,7 @@ static void find_drives(FS *fs)
                                 (found_filecore_drive_f)add_drive, fs);
 }
 
+static _kernel_oserror err_no_memory  = { 0, "No memory" };
 static _kernel_oserror err_bad_module = { 0, "Bad module name" };
 
 static _kernel_oserror* add_fs(const char *module, bool fd_names)
@@ -73,6 +65,9 @@ static _kernel_oserror* add_fs(const char *module, bool fd_names)
     if (e) return e;
 
     fs = malloc(sizeof(FS));
+    if (!fs)
+        return &err_no_memory;
+
     strcpy(fs->module,  module);
     strcpy(fs->name,    (const char*)(fcdb[1]) );
     fs->fd_names = fd_names;
@@ -156,11 +151,28 @@ _kernel_oserror *module_finalise(int fatal, int podule_base, void *pw)
 {
     UNUSED(fatal);
     UNUSED(podule_base);
+    FS *fs = fses;
+    Icon *icon = icons;
 
     if (task_handle != 0 && task_handle != -1)
         _swix(Wimp_CloseDown, _INR(0,1), task_handle, 0x4b534154);
 
     _swix(OS_Release, _INR(0,2), UpcallV, &upcall_entry, pw);
+
+    while (fs)
+    {
+        FS *x = fs;
+        fs = fs->next;
+        free(x);
+    }
+
+    while (icon)
+    {
+        Icon *x = icon;
+        icon = icon->next;
+        free(x);
+    }
+
     return NULL;
 }
 
