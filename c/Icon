@@ -22,7 +22,7 @@ _kernel_oserror *icon_command(Icon **icons, const char *cmd)
     if (e)
         return e;
 
-    if (ra_buf[4] == 0)
+    if (ra_buf[43] == 0)
     {
         Icon *icon = malloc(sizeof(Icon));
         icon->prev = 0;

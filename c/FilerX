@@ -6,6 +6,7 @@
 
 #include "kernel.h"
 #include "swis.h"
+#include "wimp.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -71,7 +72,6 @@ static char *fs_drive_name(FS* fs, int drive)
     return buffer;
 }
 
-
 static void add_drive(FS *fs, int drive, const char *name, bool is_removeable)
 {
     Drive *drv = &(fs->drive[drive]);
@@ -82,7 +82,7 @@ static void add_drive(FS *fs, int drive, const char *name, bool is_removeable)
         sprintf(drv->discname, ":%i", drive);
 
     drv->discname[10] = '\0';
-    drv->validation = icon_find(icons, fs->name, drive, name);
+    drv->validation = icon_find(icons, fs->name, drive, drv->discname);
 
     pollword |= Pollword_Drive;
     printf("Adding drive %s %d %s\n", fs->name, drive, name);
@@ -184,6 +184,7 @@ _kernel_oserror *module_cmd(const char *arg_string, int argc, int cmd_no,
     {
         case CMD_Desktop_FilerX:
             return cmd_desktop (arg_string, pw);
+            
         case CMD_FilerX_AddFS:
             return cmd_add_fs(arg_string, pw);
 
@@ -226,24 +227,30 @@ void module_service(int service_number, _kernel_swi_regs *r, void *private_word)
     UNUSED(private_word);
     switch (service_number)
     {
-/*
-    case 0x11 : // Service_Memory
-        if (r->r[2] == Image__RO_Base)
-            r->r[1] = 0; // Refuse to release application workspace
+    case 0x27: // Service_Reset
+    case 0x4c: // Service_StartedFiler
+        task_handle = 0;
         break;
-*/
-    case 0x49: // Service_StartWimp
+
+    case 0x4b: // Service_StartFiler
         if (task_handle == 0)
         {
             task_handle = -1;
-            r->r[0] = (int)"Desktop_FilerX";
+            r->r[0] = (int)"%Desktop_FilerX";
             r->r[1] = 0; // Claim
         }
         break;
 
-    case 0x4a: // Service_StartedWimp
-        if (task_handle == -1)
-            task_handle = 0;
+    case 0x4f: // Service_FilerIsDying
+        if (task_handle > 0)
+        {
+            WimpMessage msg;
+            msg.hdr.size        = 20;
+            msg.hdr.your_ref    = 0;
+            msg.hdr.action_code = 0;
+            if (!_swix(Wimp_SendMessage, _INR(0,2), 17, &msg, task_handle))
+                task_handle = 0;
+        }
         break;
     }
 }
@@ -254,12 +261,16 @@ _kernel_oserror *upcall_handler(_kernel_swi_regs *r, void *pw)
     if (upcall == 24 || upcall == 25) // UpCall_DriveAdded UpCall_DriveRemoved
     {
         const char *drivespec = (const char*)r->r[1];
+        if (!drivespec)
+            return 0;
 
         const char *pos   = strchr(drivespec, ':');
         const char *disc  = pos+1;
         unsigned    fslen = (pos-drivespec);
         int         drive = -1;
-        FS *fs;
+
+        if (!drivespec)
+            return 0;
 
         if (strlen(disc) == 2 || disc[0] == ':')
             drive = disc[1] - '0';
@@ -267,6 +278,7 @@ _kernel_oserror *upcall_handler(_kernel_swi_regs *r, void *pw)
         if (drive< 0 || drive > 7)
             return 0;
 
+        FS *fs;
         for (fs = fses; fs; fs = fs->next)
         {
             if ( strlen(fs->name) == fslen &&

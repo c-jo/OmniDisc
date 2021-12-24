@@ -42,7 +42,7 @@ typedef struct FS_s
     char      module[12];
     char      name[8];
     bool      fd_names;
-    unsigned  priority;
+    unsigned  posiion;
     Drive     drive[8];
 
     struct FS_s *next;

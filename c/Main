@@ -159,22 +159,37 @@ static void update_icons(void)
     }
 }
 
-static void mouse_click(WimpMouseClickEvent *event)
+static void clear_icons(void)
 {
-    FS *fs = 0;
-    int drive = -1;
-    if (event->window_handle == -2 && event->icon_handle != -1) // Icon bar
+    FS *fs;
+    for (fs = fses; fs; fs = fs->next)
     {
         int n;
+        for (n=0; n<8; ++n)
+        {
+            Drive *drive = &(fs->drive[n]);
+            drive->baricon = -1;
+        }
+    }
+}
+
+static void mouse_click(WimpMouseClickEvent *event)
+{
+    FS *fs = NULL;
+    int drive = -1;
+
+    if (event->window_handle == -2 && event->icon_handle != -1) // Icon bar
+    {
         FS *f;
         for (f = fses; f; f = f->next)
         {
+            int n;
             for (n = 0; n < 8; ++n)
             {
                 if (f->drive[n].baricon == event->icon_handle)
                 {
-                    fs = f;
                     drive = n;
+                    fs = f;
                 }
             }
         }
@@ -260,6 +275,7 @@ int main(int argc, char *argv[])
              &task_handle);
 
     make_menus();
+    update_icons();
 
     while (!quit)
     {
@@ -306,5 +322,6 @@ int main(int argc, char *argv[])
     }
 
     _swi(Wimp_CloseDown, _INR(0,1), task_handle, 0x4b534154);
+    clear_icons();
     task_handle = 0;
 }

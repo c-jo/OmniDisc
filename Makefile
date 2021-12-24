@@ -15,7 +15,6 @@ include CModule
 #CMHGFLAGS = -32bit
 
 # Dynamic dependencies:
-h.FilerXHdr:	cmhg.FilerXHdr
 o.Enter: s.Enter
 o.Enter: Hdr:ListOpts
 o.Enter: Hdr:Macros
@@ -33,12 +32,13 @@ o.FindDrives:	C:h.swis
 o.FindDrives:	C:h.kernel
 o.FindDrives:	h.FileCoreConstants
 o.FindDrives:	h.FindDrives
-o.FilerXHdr:	cmhg.FilerXHdr
 o.Icon:	c.Icon
 o.Icon:	C:h.swis
 o.Icon:	C:h.kernel
 o.Icon:	h.Icon
 o.Icon:	C:h.kernel
+h.FilerXHdr:	cmhg.FilerXHdr
+o.FilerXHdr:	cmhg.FilerXHdr
 o.FilerX:	c.FilerX
 o.FilerX:	C:h.kernel
 o.FilerX:	h.FilerXHdr
@@ -50,6 +50,7 @@ o.FilerX:	h.FindDrives
 o.FilerX:	h.Icon
 o.FilerX:	C:h.kernel
 o.FilerX:	C:h.swis
+o.FilerX:	C:h.wimp
 o.Main:	c.Main
 o.Main:	h.FilerX
 o.Main:	C:h.Wimp
