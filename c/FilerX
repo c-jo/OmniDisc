@@ -173,7 +173,7 @@ static _kernel_oserror*cmd_add_fs(const char* arg_string, void *pw)
     if (e)
         return e;
 
-    return add_fs((char*)ra_buf[0], ra_buf[1] != 0);
+    return add_fs((char*)ra_buf[0], ra_buf[1] == 0 ? 0 : 1);
 
 }
 
@@ -261,37 +261,35 @@ _kernel_oserror *upcall_handler(_kernel_swi_regs *r, void *pw)
     if (upcall == 24 || upcall == 25) // UpCall_DriveAdded UpCall_DriveRemoved
     {
         const char *drivespec = (const char*)r->r[1];
-        if (!drivespec)
-            return 0;
-
-        const char *pos   = strchr(drivespec, ':');
-        const char *disc  = pos+1;
-        unsigned    fslen = (pos-drivespec);
-        int         drive = -1;
-
-        if (!drivespec)
-            return 0;
-
-        if (strlen(disc) == 2 || disc[0] == ':')
-            drive = disc[1] - '0';
-
-        if (drive< 0 || drive > 7)
-            return 0;
-
-        FS *fs;
-        for (fs = fses; fs; fs = fs->next)
+        if (drivespec)
         {
-            if ( strlen(fs->name) == fslen &&
-                !strncmp(drivespec, fs->name, fslen))
-            {
-                if (upcall == 24)
-                    add_drive(fs, drive, fs_drive_name(fs, drive), false);
+            const char *pos   = strchr(drivespec, ':');
+            const char *disc  = pos+1;
+            unsigned    fslen = (pos-drivespec);
+            int         drive = -1;
+            FS *fs;
 
-                if (upcall == 25)
-                    remove_drive(fs, drive);
-             }
+            if (strlen(disc) == 2 || disc[0] == ':')
+                drive = disc[1] - '0';
+
+            if (drive< 0 || drive > 7)
+                return 0;
+
+            for (fs = fses; fs; fs = fs->next)
+            {
+                if ( strlen(fs->name) == fslen &&
+                    !strncmp(drivespec, fs->name, fslen))
+                {
+                    if (upcall == 24)
+                        add_drive(fs, drive, fs_drive_name(fs, drive), false);
+
+                    if (upcall == 25)
+                        remove_drive(fs, drive);
+                }
+            }
         }
     }
+
     return 0;
 }
 
