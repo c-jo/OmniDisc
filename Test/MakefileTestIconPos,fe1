@@ -1,0 +1,45 @@
+#!/usr/bin/env riscos-amu -f
+# Makefile for testicon
+#
+
+#
+# Program specific options:
+#
+COMPONENT  = testiconpos
+
+# Specifies additional targets for startup
+#INITTARGET = inittarget
+
+# Specifies additional targets for clean
+#CLEANTARGET = cleantarget
+
+# aif, for linked objects
+# aof, for a partially linked AOF object
+# util, for utilities built with objasm
+# basic, for BASIC tools
+TYPE       = aif
+
+# The file to output (defaults ${COMPONENT})
+#TARGET = <filename>
+
+# Comma-separated list of paths to use for includes, such as:
+#	<Lib$Dir>.LibName.
+CINCLUDES  = -I^.
+
+# Space separated list of defines to set, eg -DDEBUG
+CDEFINES   = -DNO_STDBOOL
+
+# Space separated list of libraries to link against.
+#LIBS       = ${CLIB}
+
+# Objects to build, using the format o.<name> (will be varied for build type)
+OBJS       = IconPosition \
+             TestIconPos \
+
+# Space separated list of XML files for building documentation.
+#DOCSRC = <prm-in-xml-sources>
+
+include CApp # LibraryCommand
+
+#---------------------------------------------------------------------------
+# Dynamic dependencies:
