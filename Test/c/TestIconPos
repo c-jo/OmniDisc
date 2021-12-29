@@ -8,11 +8,11 @@ void test_check(const char *name, unsigned line,
                 int pos_g, int pos_e, int icon_g, int icon_e)
 {
    if (pos_g != pos_e) {
-        printf("%s (%d): pos got %d expeted %d\n", name, line, pos_g, pos_e);
+        printf("%s (%d): pos got %d expected %d\n", name, line, pos_g, pos_e);
         exit(1);
    }
     if (icon_g != icon_e) {
-        printf("%s (%d): icon got %d expeted %d\n", name, line, icon_g, icon_e);
+        printf("%s (%d): icon got %d expected %d\n", name, line, icon_g, icon_e);
         exit(1);
    }
    printf("%s (%d): OK\n", name, line);
@@ -26,7 +26,7 @@ static void init_fs(FS *fs, const char *name)
 {
     int n;
     strcpy(fs->name, name);
-    fs->position = 0;
+    fs->priority = 0;
     fs->next = 0;
 
     for (n=0; n < 8; ++n)
@@ -40,7 +40,8 @@ static void init_fs(FS *fs, const char *name)
 int main(void)
 {
     int pos, icon;
-    FS adfs;
+    FS adfs, scsi;
+
     init_fs(&adfs, "ADFS");
 
     fses = &adfs;
@@ -58,7 +59,6 @@ int main(void)
     adfs.drive[5].baricon = -1; // Reset icon
 
     // Add another FS
-    FS scsi;
     init_fs(&scsi, "SCSI");
     adfs.next = &scsi;
 
