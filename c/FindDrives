@@ -9,6 +9,10 @@
 #include "FileCoreConstants.h"
 #include "FindDrives.h"
 
+#ifdef FORTIFY
+#include "fortify.h"
+#endif
+
 #define DRIVE_MAX (8)
 
 
