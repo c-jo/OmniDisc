@@ -43,6 +43,7 @@ OBJS       = \
              o.FindDrives \
              o.Icon \
 
+FORTIFY   ?= no
 
 include CModule
 

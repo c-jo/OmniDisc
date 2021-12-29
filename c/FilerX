@@ -11,6 +11,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#ifdef FORTIFY
+#include "fortify.h"
+#endif
+
 #define UpcallV 0x1d
 
 unsigned task_handle;
@@ -144,6 +148,10 @@ _kernel_oserror *module_initialise(const char *cmd_tail, int podule_base,
     fses   = NULL;
     icons  = NULL;
 
+#ifdef FORTIFY
+    Fortify_EnterScope();
+#endif
+
     return _swix(OS_Claim, _INR(0,2), UpcallV, &upcall_entry, pw);
 }
 
@@ -173,6 +181,10 @@ _kernel_oserror *module_finalise(int fatal, int podule_base, void *pw)
         icon = icon->next;
         free(x);
     }
+
+#ifdef FORTIFY
+    Fortify_LeaveScope();
+#endif
 
     return NULL;
 }

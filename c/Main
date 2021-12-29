@@ -5,6 +5,10 @@
 #include <stdio.h>
 #include <string.h>
 
+#ifdef FORTIFY
+#include "fortify.h"
+#endif
+
 static char *share_styles[] =
     { "Not shared", "Share protected", "Share unprotected" };
 
