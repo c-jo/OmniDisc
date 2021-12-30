@@ -14,7 +14,7 @@ finalisation-code: module_finalise
 
 library-enter-code: module_enter
 
-service-call-handler: module_service 0x49 0x4a
+service-call-handler: module_service 0x27 0x4b 0x4c 0x4f
 
 generic-veneers: upcall_entry/upcall_handler
 

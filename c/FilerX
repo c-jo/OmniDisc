@@ -6,27 +6,66 @@
 
 #include "kernel.h"
 #include "swis.h"
+#include "wimp.h"
 
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 
-#define UpcallV 0x1d
+#ifdef FORTIFY
+#include "fortify.h"
+#endif
 
-char *strdup(const char *src)
-{
-    char *tgt;
-    if (src == 0)
-        return 0;
-    tgt = malloc(strlen(src)+1);
-    return strcpy(tgt, src);
-}
+#define UpcallV 0x1d
 
 unsigned task_handle;
 unsigned pollword;
 
 FS    *fses;
 Icon  *icons;
+
+/*******************************************************************
+ Function:      fs_drive_name
+ Description:   Read the name of a drive
+ Parameters:    FS  => FS info structure
+                drive = drive number
+ Returns:       pointer to the drive name or NULL. This pointer is
+                only valid until the next call.
+ ******************************************************************/
+static char *fs_drive_name(FS* fs, int drive)
+{
+    static char buffer[12];
+
+    char disc_record[0x40] = {0};
+    char name[32];
+    int i;
+
+    unsigned swinum_desc;
+
+    sprintf(name, "%s_DescribeDisc", fs->module);
+
+    if (_swix(OS_SWINumberFromString, _IN(1)|_OUT(0), name, &swinum_desc))
+        return NULL; // Error doing SWI lookup
+
+    if (drive < 4 && !fs->fd_names)
+        return NULL; // Floppy disc
+
+    sprintf(name, ":%d", drive);
+    if (_swix(swinum_desc, _INR(0,1), &name, &disc_record))
+       return NULL; // Error calling describe disc
+
+    for (i=0; i<10; ++i)
+    {
+        char c = disc_record[0x16+i];
+        if (c == ' ' || c == '\0')
+            break;
+
+        buffer[i] = c;
+    }
+    buffer[i] = '\0'; // Terminate string
+
+    return buffer;
+}
 
 static void add_drive(FS *fs, int drive, const char *name, bool is_removeable)
 {
@@ -38,7 +77,18 @@ static void add_drive(FS *fs, int drive, const char *name, bool is_removeable)
         sprintf(drv->discname, ":%i", drive);
 
     drv->discname[10] = '\0';
-    drv->validation = icon_find(icons, fs->name, drive, name);
+    drv->validation = icon_find(icons, fs->name, drive, drv->discname);
+
+    pollword |= Pollword_Drive;
+    printf("Adding drive %s %d %s\n", fs->name, drive, name);
+}
+
+static void remove_drive(FS *fs, int drive)
+{
+    Drive *drv = &(fs->drive[drive]);
+    drv->validation = NULL;
+
+    pollword |= Pollword_Drive;
 }
 
 static void find_drives(FS *fs)
@@ -50,6 +100,7 @@ static void find_drives(FS *fs)
                                 (found_filecore_drive_f)add_drive, fs);
 }
 
+static _kernel_oserror err_no_memory  = { 0, "No memory" };
 static _kernel_oserror err_bad_module = { 0, "Bad module name" };
 
 static _kernel_oserror* add_fs(const char *module, bool fd_names)
@@ -73,26 +124,28 @@ static _kernel_oserror* add_fs(const char *module, bool fd_names)
     if (e) return e;
 
     fs = malloc(sizeof(FS));
+    if (!fs)
+        return &err_no_memory;
+
     strcpy(fs->module,  module);
     strcpy(fs->name,    (const char*)(fcdb[1]) );
     fs->fd_names = fd_names;
 
     for (n=0; n<8; ++n)
     {
-        fs->drive[n].flags       = 0;
-        fs->drive[n].discname[0] = 0;
-        fs->drive[n].validation  = 0;
-        fs->drive[n].baricon     = 0;
+        fs->drive[n].flags       =  0;
+        fs->drive[n].discname[0] =  0;
+        fs->drive[n].validation  =  0;
+        fs->drive[n].baricon     = -1;
     }
 
     fs->next = fses;
     fses     = fs;
 
     find_drives(fs);
+    pollword |= Pollword_FS;
     return 0;
 }
-
-
 
 static _kernel_oserror*cmd_desktop(const char* arg_string, void *pw)
 {
@@ -119,8 +172,7 @@ static _kernel_oserror*cmd_add_fs(const char* arg_string, void *pw)
     if (e)
         return e;
 
-
-    return add_fs((char*)ra_buf[0], ra_buf[1] != 0 ? true : false);
+    return add_fs((char*)ra_buf[0], ra_buf[1] == 0 ? 0 : 1);
 
 }
 
@@ -129,11 +181,16 @@ _kernel_oserror *module_cmd(const char *arg_string, int argc, int cmd_no,
 {
     switch (cmd_no)
     {
-        case CMD_Desktop_FilerX:   return cmd_desktop (arg_string, pw);
-        case CMD_FilerX_AddFS:     return cmd_add_fs  (arg_string, pw);
-        case CMD_FilerX_DriveIcon: return icon_command(&icons, arg_string);
-    }
+        case CMD_Desktop_FilerX:
+            return cmd_desktop (arg_string, pw);
+            
+        case CMD_FilerX_AddFS:
+            return cmd_add_fs(arg_string, pw);
 
+        case CMD_FilerX_DriveIcon:
+            pollword |= Pollword_Icon;
+            return icon_command(&icons, arg_string);
+    }
     return 0;
 }
 
@@ -149,11 +206,18 @@ _kernel_oserror *module_initialise(const char *cmd_tail, int podule_base,
     fses   = NULL;
     icons  = NULL;
 
+#ifdef FORTIFY
+    Fortify_EnterScope();
+#endif
+
     return _swix(OS_Claim, _INR(0,2), UpcallV, &upcall_entry, pw);
 }
 
 _kernel_oserror *module_finalise(int fatal, int podule_base, void *pw)
 {
+    FS *fs = fses;
+    Icon *icon = icons;
+
     UNUSED(fatal);
     UNUSED(podule_base);
 
@@ -161,6 +225,25 @@ _kernel_oserror *module_finalise(int fatal, int podule_base, void *pw)
         _swix(Wimp_CloseDown, _INR(0,1), task_handle, 0x4b534154);
 
     _swix(OS_Release, _INR(0,2), UpcallV, &upcall_entry, pw);
+
+    while (fs)
+    {
+        FS *x = fs;
+        fs = fs->next;
+        free(x);
+    }
+
+    while (icon)
+    {
+        Icon *x = icon;
+        icon = icon->next;
+        free(x);
+    }
+
+#ifdef FORTIFY
+    Fortify_LeaveScope();
+#endif
+
     return NULL;
 }
 
@@ -169,24 +252,30 @@ void module_service(int service_number, _kernel_swi_regs *r, void *private_word)
     UNUSED(private_word);
     switch (service_number)
     {
-/*
-    case 0x11 : // Service_Memory
-        if (r->r[2] == Image__RO_Base)
-            r->r[1] = 0; // Refuse to release application workspace
+    case 0x27: // Service_Reset
+    case 0x4c: // Service_StartedFiler
+        task_handle = 0;
         break;
-*/
-    case 0x49: // Service_StartWimp
+
+    case 0x4b: // Service_StartFiler
         if (task_handle == 0)
         {
             task_handle = -1;
-            r->r[0] = (int)"Desktop_FilerX";
+            r->r[0] = (int)"%Desktop_FilerX";
             r->r[1] = 0; // Claim
         }
         break;
 
-    case 0x4a: // Service_StartedWimp
-        if (task_handle == -1)
-            task_handle = 0;
+    case 0x4f: // Service_FilerIsDying
+        if (task_handle > 0)
+        {
+            WimpMessage msg;
+            msg.hdr.size        = 20;
+            msg.hdr.your_ref    = 0;
+            msg.hdr.action_code = 0;
+            if (!_swix(Wimp_SendMessage, _INR(0,2), 17, &msg, task_handle))
+                task_handle = 0;
+        }
         break;
     }
 }
@@ -197,30 +286,35 @@ _kernel_oserror *upcall_handler(_kernel_swi_regs *r, void *pw)
     if (upcall == 24 || upcall == 25) // UpCall_DriveAdded UpCall_DriveRemoved
     {
         const char *drivespec = (const char*)r->r[1];
-
-        const char *pos   = strchr(drivespec, ':');
-        const char *disc  = pos+1;
-        unsigned    fslen = (pos-drivespec);
-        int         drive = -1;
-        FS *fs;
-
-        if (strlen(disc) == 2 || disc[0] == ':')
-            drive = disc[1] - '0';
-
-        if (drive< 0 || drive > 7)
-            return 0;
-
-        for (fs = fses; fs; fs = fs->next)
+        if (drivespec)
         {
-            if ( strlen(fs->name) == fslen &&
-                !strncmp(drivespec, fs->name, fslen))
+            const char *pos   = strchr(drivespec, ':');
+            const char *disc  = pos+1;
+            unsigned    fslen = (pos-drivespec);
+            int         drive = -1;
+            FS *fs;
+
+            if (strlen(disc) == 2 || disc[0] == ':')
+                drive = disc[1] - '0';
+
+            if (drive< 0 || drive > 7)
+                return 0;
+
+            for (fs = fses; fs; fs = fs->next)
             {
-                printf("UpCall %d, %s :%d\n", upcall, fs->name, drive);
-                //if (upcall == 24) fs_drive_added  (fs, drive);
-                //if (upcall == 25) fs_drive_removed(fs, drive);
-             }
+                if ( strlen(fs->name) == fslen &&
+                    !strncmp(drivespec, fs->name, fslen))
+                {
+                    if (upcall == 24)
+                        add_drive(fs, drive, fs_drive_name(fs, drive), false);
+
+                    if (upcall == 25)
+                        remove_drive(fs, drive);
+                }
+            }
         }
     }
+
     return 0;
 }
 

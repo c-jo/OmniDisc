@@ -5,6 +5,10 @@
 
 #include "Icon.h"
 
+#ifdef FORTIFY
+#include "fortify.h"
+#endif
+
 static int stricmp(const char *s1, const char *s2)
 {
      while (*s1 != 0)
@@ -17,25 +21,34 @@ _kernel_oserror *icon_command(Icon **icons, const char *cmd)
     static unsigned ra_buf[64];
     _kernel_oserror *e = 0;
     e = _swix(OS_ReadArgs, _INR(0,3),
-                  "fs/K,disc/K,icon,delete/S,f/S,h/S",
+                  "fs/K,disc/K,drive/K,icon,delete/S,f/S,h/S",
                   cmd, &ra_buf, sizeof(ra_buf));
     if (e)
         return e;
 
-    if (ra_buf[3] == 0)
+    if (ra_buf[43] == 0)
     {
         Icon *icon = malloc(sizeof(Icon));
         icon->prev = 0;
         icon->next = *icons;
+        icon->floppy = true;
+        icon->winnie = true;
+
         if (icon->next)
             icon->next->prev = icon;
 
         strcpy(icon->fs,   ra_buf[0] ? (char*)ra_buf[0] : "");
         strcpy(icon->disc, ra_buf[1] ? (char*)ra_buf[1] : "");
+
         if (ra_buf[2])
+            icon->drive = atoi((char*)ra_buf[1]);
+        else
+            icon->drive = -1;
+
+        if (ra_buf[3])
         {
             icon->val[0] = 'S';
-             strcpy(icon->val+1, (char*)ra_buf[2]);
+             strcpy(icon->val+1, (char*)ra_buf[3]);
         }
         else
             icon->val[0] = 0;
@@ -51,25 +64,40 @@ _kernel_oserror *icon_command(Icon **icons, const char *cmd)
 
 int icon_match(Icon* icon, const char *fs, int drive, const char *discname)
 {
-    if (stricmp(fs, icon->fs)) return -1;
-    if (drive < 4 && !icon->floppy) return -1;
-    if (drive > 3 && !icon->winnie) return -1;
+    int match = 0;
+    if (drive < 4 && !icon->floppy) return 0;
+    if (drive > 3 && !icon->winnie) return 0;
+
+    if (icon->fs[0] != 0)
+    {
+        if (!stricmp(icon->fs, fs))
+            match += 1;
+        else
+            return 0;
+    }
+
+    if (icon->drive != -1)
+    {
+        if (icon->drive == drive)
+            match += 2;
+        else
+           return 0;
+    }
 
     if (icon->disc[0] != 0)
     {
-        if (icon->disc[0] == ':')
-            return (icon->disc[1] == drive+48) ? 1 : -1;
+        if (!stricmp(icon->disc, discname))
+            match += 3;
         else
-            return (!stricmp(icon->disc, discname)) ? 2 : -1;
+            return 0;
     }
-
-    return 0;
+    return match + 1;
 }
 
 const char *icon_find(Icon* icons, const char *fs, int drive, const char *discname)
 {
     const char *v = 0;
-    int s = -1;
+    int s = 0;
 
     while (icons)
     {
