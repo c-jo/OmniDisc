@@ -26,7 +26,6 @@ static void init_fs(FS *fs, const char *name)
 {
     int n;
     strcpy(fs->name, name);
-    fs->priority = 0;
     fs->next = 0;
 
     for (n=0; n < 8; ++n)
