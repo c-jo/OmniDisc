@@ -43,6 +43,12 @@ jobs:
       - echo +++ Module
       - amu -f MakefileCJF ram
 
+      # Test that the module will load and die
+      - echo + Test module load/kill
+      - RMLoad rm32.FilerX
+      # We could do other runtime tests here
+      - RMKill FilerX
+
     # Outputs from the build are defined in artifacts
     # These are a list of artifacts to report directories or files.
     # Only a single item is currently supported.
