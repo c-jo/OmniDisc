@@ -32,6 +32,11 @@ typedef struct
     char        discname[12];
     const char *validation;
     int         baricon;
+    enum  { ShareUnknown     =-1,
+            NotShared        = 0,
+            ShareProtected   = 1,
+            ShareUnprotected = 2 }
+                share;
 } Drive;
 
 #define DriveFlags_Present 1

@@ -138,6 +138,7 @@ static _kernel_oserror* add_fs(const char *module, bool fd_names)
         fs->drive[n].discname[0] =  0;
         fs->drive[n].validation  =  0;
         fs->drive[n].baricon     = -1;
+        fs->drive[n].share       = ShareUnknown;
     }
 
     fs->next = fses;
