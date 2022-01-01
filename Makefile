@@ -5,7 +5,9 @@ OBJS        = FilerX \
 			  Main \
 			  Enter \
 			  FindDrives \
-			  Icon
+			  Icon \
+			  IconPosition \
+			  
 CMHGDEPENDS = FilerX
 CUSTOMRES   = no
 
@@ -37,7 +39,6 @@ o.Icon:	C:h.swis
 o.Icon:	C:h.kernel
 o.Icon:	h.Icon
 o.Icon:	C:h.kernel
-h.FilerXHdr:	cmhg.FilerXHdr
 o.FilerXHdr:	cmhg.FilerXHdr
 o.FilerX:	c.FilerX
 o.FilerX:	C:h.kernel
@@ -51,9 +52,15 @@ o.FilerX:	h.Icon
 o.FilerX:	C:h.kernel
 o.FilerX:	C:h.swis
 o.FilerX:	C:h.wimp
+h.FilerXHdr:	cmhg.FilerXHdr
 o.Main:	c.Main
 o.Main:	h.FilerX
 o.Main:	C:h.Wimp
 o.Main:	h.Icon
 o.Main:	C:h.kernel
 o.Main:	C:h.swis
+o.IconPosition:	c.IconPosition
+o.IconPosition:	h.FilerX
+o.IconPosition:	C:h.Wimp
+o.IconPosition:	h.Icon
+o.IconPosition:	C:h.kernel

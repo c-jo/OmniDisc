@@ -115,6 +115,7 @@ static void create_icons(Drive *drive)
     {
         unsigned xsize,ysize;
         WimpCreateIconBlock cib;
+        int icon;
 
         get_icon_size(drive->validation+1, &xsize, &ysize);
         cib.window_handle  = - 5;
@@ -127,8 +128,9 @@ static void create_icons(Drive *drive)
         cib.icon.data.ist.validation  = (char*)drive->validation;
         cib.icon.data.ist.buffer_size = strlen(drive->discname);
 
-        _swix(Wimp_CreateIcon, _INR(0,1)|_OUT(0),
-                  0x60000000, &cib, &drive->baricon);
+        icon_position(drive, &cib.window_handle, &icon);
+
+        _swix(Wimp_CreateIcon, _INR(0,1)|_OUT(0), icon, &cib, &drive->baricon);
     }
 }
 
