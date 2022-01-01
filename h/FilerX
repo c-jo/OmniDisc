@@ -19,8 +19,8 @@ typedef enum {false, true} bool;
 char *strdup(const char *src);
 
 extern unsigned task_handle;
-
 extern unsigned pollword;
+extern bool     sharefs;
 
 #define Pollword_FS    0x01
 #define Pollword_Drive 0x02
