@@ -228,7 +228,6 @@ static void mouse_click(WimpMouseClickEvent *event)
     {
         int x = event->mouse_x;
         int y = event->mouse_y;
-        int n;
 
         if (event->window_handle == -2)
         {
@@ -238,18 +237,22 @@ static void mouse_click(WimpMouseClickEvent *event)
         sprintf(drive_menu.menu.title, "%s::%d", fs->name, drive);
 
         if (sharefs)
+        {
+            WimpMenuItem *items = ((WimpMenu*)&share_menu)->items;
+            int n;
+
+            for (n=0; n<=2; ++n)
+            {
+                 if (fs->drive[drive].share == n)
+                     items[n].flags |=  WimpMenuItem_Ticked;
+                 else
+                     items[n].flags &= ~WimpMenuItem_Ticked;
+            }
             share_item->icon_flags &= ~WimpIcon_Shaded;
+        }
         else
             share_item->icon_flags |=  WimpIcon_Shaded;
 
-        WimpMenuItem *items = ((WimpMenu*)&share_menu)->items;
-        for (n=0; n<=2; ++n)
-        {
-             if (fs->drive[drive].share == n)
-                 items[n].flags |=  WimpMenuItem_Ticked;
-             else
-                 items[n].flags &= ~WimpMenuItem_Ticked;
-        }
         _swi(Wimp_CreateMenu, _INR(1,3), &drive_menu, x, y);
         menu_drive.fs    = fs;
         menu_drive.drive = drive;
@@ -298,7 +301,7 @@ static void menu_selection(WimpMenuSelectionEvent *event)
                     break;
                 }
                 if (e) _swix(Wimp_ReportError, _INR(0,2), e, 1, 0);
-                else drv->share = (*event)[1];
+                else drv->share = (ShareType)(*event)[1];
             }
             break;
         }

@@ -26,17 +26,21 @@ extern bool     sharefs;
 #define Pollword_Drive 0x02
 #define Pollword_Icon  0x04
 
+typedef enum
+{
+    ShareUnknown     =-1,
+    NotShared        = 0,
+    ShareProtected   = 1,
+    ShareUnprotected = 2
+} ShareType;
+
 typedef struct
 {
     unsigned    flags;
     char        discname[12];
     const char *validation;
     int         baricon;
-    enum  { ShareUnknown     =-1,
-            NotShared        = 0,
-            ShareProtected   = 1,
-            ShareUnprotected = 2 }
-                share;
+    ShareType   share;
 } Drive;
 
 #define DriveFlags_Present 1
