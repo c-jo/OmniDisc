@@ -236,12 +236,32 @@ static void menu_selection(WimpMenuSelectionEvent *event)
 {
     if (menu_drive.fs != NULL && menu_drive.drive != -1)
     {
-        switch (*event[0])
+        switch ((*event)[0])
         {
         case 0: // Name Disc
-            if (event[1] == 0)
+            if ((*event)[1] == 0)
             {
-                _swi(Wimp_ReportError, _INR(0,2), "0000Dismount", 1, 0);
+                char discspec[16];
+                _kernel_oserror *e;
+                sprintf(discspec, "%s::%i",
+                    menu_drive.fs->name, menu_drive.drive);
+
+                e = _swix(OS_FSControl, _INR(0,2), 50, discspec, new_name);
+                if (e)
+                    _swix(Wimp_ReportError, _INR(0,2), e, 1, 0);
+                else
+                {
+                    Drive *drive = &menu_drive.fs->drive[menu_drive.drive];
+                    char cmd[32];
+                    int  sisblock[4] = { -2, drive->baricon, 0, 0 };
+
+                    strcpy(cmd, "%Filer_CloseDir ");
+                    strcat(cmd, discspec);
+                    _swix(OS_CLI, _IN(0), cmd);
+
+                    strcpy(drive->discname, new_name);
+                    _swix(Wimp_SetIconState, _IN(1), &sisblock);
+                }
             }
             break;
         case 1: // Dismount
