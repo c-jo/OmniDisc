@@ -40,18 +40,14 @@ static char *fs_drive_name(FS* fs, int drive)
     char name[32];
     int i;
 
-    unsigned swinum_desc;
-
-    sprintf(name, "%s_DescribeDisc", fs->module);
-
-    if (_swix(OS_SWINumberFromString, _IN(1)|_OUT(0), name, &swinum_desc))
+    if (fs->fsparams->swi_describedisc == FSP_NO_SWI)
         return NULL; // Error doing SWI lookup
 
     if (drive < 4 && !fs->fd_names)
         return NULL; // Floppy disc
 
     sprintf(name, ":%d", drive);
-    if (_swix(swinum_desc, _INR(0,1), &name, &disc_record))
+    if (_swix(fs->fsparams->swi_describedisc, _INR(0,1), &name, &disc_record))
        return NULL; // Error calling describe disc
 
     for (i=0; i<10; ++i)
@@ -72,20 +68,20 @@ static void add_drive(FS *fs, int drive, const char *name,
 {
     Drive *drv = &(fs->drive[drive]);
 
-   if (name)
+    if (name)
         strncpy(drv->discname, name, 10);
     else
         sprintf(drv->discname, ":%i", drive);
 
     drv->discname[10] = '\0';
-    drv->validation = icon_find(icons, fs->name, drive, drv->discname);
+    drv->validation = icon_find(icons, fs->fsparams->name, drive, drv->discname);
 
     drv->is_removeable = is_removeable;
     drv->is_ejectable = is_ejectable;
     drv->is_floppy = is_floppy;
 
     pollword |= Pollword_Drive;
-    printf("Adding drive %s %d %s\n", fs->name, drive, name);
+    printf("Adding drive %s %d %s\n", fs->fsparams->name, drive, name ? name : "<No name>");
 }
 
 static void remove_drive(FS *fs, int drive)
@@ -101,39 +97,28 @@ static void find_drives(FS *fs)
     unsigned long flags = FFMD_REPORT_REMOVABLE | FFMD_REPORT_FIXED | FFMD_NAME_FIXED;
     if (fs->fd_names)
         flags |= FFMD_NAME_REMOVABLE;
-    find_filecore_module_drives(fs->module, flags,
+    find_filecore_module_drives(fs->fsparams, flags,
                                 (found_filecore_drive_f)add_drive, fs);
 }
 
 static _kernel_oserror err_no_memory  = { 0, "No memory" };
 static _kernel_oserror err_bad_module = { 0, "Bad module name" };
+static _kernel_oserror err_cannot_add = { 0, "Cannot add filing system registration" };
 
 static _kernel_oserror* add_fs(const char *module, bool fd_names)
 {
     FS *fs;
-    unsigned miscop_swi;
     int n;
-    _kernel_oserror *e;
-    char miscop[20];
-    unsigned *fcdb = 0;
-
     if (strlen(module) > 11)
         return &err_bad_module;
-
-    sprintf(miscop, "%s_MiscOp", module);
-
-    e = _swix(OS_SWINumberFromString, _IN(1)|_OUT(0), miscop, &miscop_swi);
-    if (e) return e;
-
-    e = _swix(miscop_swi, _IN(0)|_OUT(0), 6, &fcdb);
-    if (e) return e;
 
     fs = malloc(sizeof(FS));
     if (!fs)
         return &err_no_memory;
 
-    strcpy(fs->module,  module);
-    strcpy(fs->name,    (const char*)(fcdb[1]) );
+    fs->fsparams = fsparams_create(module);
+    if (fs->fsparams == NULL)
+        return &err_cannot_add; /* Not ideal - we cannot differentiate memory and FS problems */
     fs->fd_names = fd_names;
 
     for (n=0; n<8; ++n)
@@ -156,7 +141,7 @@ static _kernel_oserror* add_fs(const char *module, bool fd_names)
 }
 
 
-/*************************************************** Gerph *********
+/*******************************************************************
  Function:      fsdrive_tool_command
  Description:   Read the command for a given tool on a drive
  Parameters:    fs-> the FS to invoke on
@@ -164,7 +149,7 @@ static _kernel_oserror* add_fs(const char *module, bool fd_names)
                 tooloperation = the operation to perform
  Returns:       pointer to read only command to use, or NULL if not available
  ******************************************************************/
-static const char * fsdrive_tool_command(FS *fs, int drive,
+static const char *fsdrive_tool_command(FS *fs, int drive,
                                          tooloperation_t tooloperation)
 {
     Drive *drv = &fs->drive[drive];
@@ -173,13 +158,13 @@ static const char * fsdrive_tool_command(FS *fs, int drive,
 
     cmd = build_tool_command(tooloperation,
                              tooldisctype,
-                             fs->name,
+                             fs->fsparams->fsname,
                              false,
                              drive);
     return cmd;
 }
 
-/*************************************************** Gerph *********
+/*******************************************************************
  Function:      fsdrive_tool_capable
  Description:   Check if we can invoke the external tools for this drive
  Parameters:    fs-> the FS to invoke on
@@ -194,7 +179,7 @@ bool fsdrive_tool_capable(FS *fs, int drive,
     return cmd == NULL ? false : true;
 }
 
-/*************************************************** Gerph *********
+/*******************************************************************
  Function:      fsdrive_tool_invoke
  Description:   Invoke one of the external tools.
  Parameters:    fs-> the FS to invoke on
@@ -303,6 +288,7 @@ _kernel_oserror *module_finalise(int fatal, int podule_base, void *pw)
     {
         FS *x = fs;
         fs = fs->next;
+        fsparams_destroy(fs->fsparams);
         free(x);
     }
 
@@ -375,8 +361,8 @@ _kernel_oserror *upcall_handler(_kernel_swi_regs *r, void *pw)
 
             for (fs = fses; fs; fs = fs->next)
             {
-                if ( strlen(fs->name) == fslen &&
-                    !strncmp(drivespec, fs->name, fslen))
+                if ( strlen(fs->fsparams->fsname) == fslen &&
+                    !strncmp(drivespec, fs->fsparams->fsname, fslen))
                 {
                     if (upcall == 24)
                     {

@@ -8,6 +8,7 @@
 
 #include "FileCoreConstants.h"
 #include "FindDrives.h"
+#include "FSParameters.h"
 
 #ifdef FORTIFY
 #include "fortify.h"
@@ -29,19 +30,23 @@
 /*******************************************************************
  Function:      read_drive_name
  Description:   Read the name of a drive
- Parameters:    drive = drive number
-                swinum_describe = SWI to describe the disc
+ Parameters:    fsparams-> the fsparameters_t structure which describes
+                    the FS we are accessing
+                drive = drive number
                 buffer-> disc name buffer to fill (at least 11 bytes)
  Returns:       pointer to the drive name or NULL if none could be read
  ******************************************************************/
-static char *read_drive_name(int drive, unsigned swinum_describe, char *buffer)
+static char *read_drive_name(fsparameters_t *fsparams, int drive, char *buffer)
 {
     char disc_record[0x40] = {0};
     char name[10];
     int i;
 
+    if (fsparams->swi_describedisc == FSP_NO_SWI)
+        return NULL;
+
     sprintf(name, ":%d", drive);
-    if (_swix(swinum_describe, _INR(0,1), &name, &disc_record))
+    if (_swix(fsparams->swi_describedisc, _INR(0,1), &name, &disc_record))
         return NULL;
 
     for (i=0; i<10; ++i)
@@ -61,60 +66,40 @@ static char *read_drive_name(int drive, unsigned swinum_describe, char *buffer)
 /*******************************************************************
  Function:      find_filecore_module_drives
  Description:   Find which FileCore drives are available for a given FS.
- Parameters:    modname-> module name, used for looking up SWI names
+ Parameters:    fsparams-> the fsparameters_t structure which describes
+                    the FS we are accessing
                 ffmd_flags = FFMD_* flags to finding discs
                 drive_callback -> function to call with the drive numbers
                 private-> the private value to pass to callback function
  Returns:       none
  ******************************************************************/
-void find_filecore_module_drives(const char *modname,
+void find_filecore_module_drives(fsparameters_t *fsparams,
                                  unsigned long ffmd_flags,
                                  found_filecore_drive_f drive_callback,
                                  void *private)
 {
     char buffer[32];
-    unsigned swinum_drives;
-    unsigned swinum_miscop;
-    unsigned swinum_describe;
     unsigned floppies, winnies;
     int first_fixed;
     int drive;
     unsigned long fs_flags = 0;
 
-    /* Special case some filing systems that have different SWI prefixes */
-    if (strcmp(modname, "RAMFS") == 0)
-        modname = "RamFS";
-
-    strcpy(buffer, modname);
-    strcat(buffer, "_Drives");
-
-    if (_swix(OS_SWINumberFromString, _IN(1) | _OUT(0), buffer, &swinum_drives) != 0)
+    if (fsparams->swi_drives == FSP_NO_SWI)
         return;
 
-    if (_swix(swinum_drives, _OUTR(1,2), &floppies, &winnies) != 0)
+    if (_swix(fsparams->swi_drives, _OUTR(1,2), &floppies, &winnies) != 0)
         return;
 
     dprintf("floppies = %i, winnies = %i\n", floppies, winnies);
 
-    strcpy(buffer, modname);
-    strcat(buffer, "_MiscOp");
-    if (_swix(OS_SWINumberFromString, _IN(1) | _OUT(0), buffer, &swinum_miscop) != 0)
-        swinum_miscop = 0;
-
-    strcpy(buffer, modname);
-    strcat(buffer, "_DescribeDisc");
-
-    if (_swix(OS_SWINumberFromString, _IN(1) | _OUT(0), buffer, &swinum_describe))
-        swinum_describe = 0;
-
     /* Decide where we split the removeable disc numbers, based on the flags from the FS */
     first_fixed = 4;
-    if (swinum_miscop)
+    if (fsparams->swi_miscop != FSP_NO_SWI)
     {
         unsigned long *fs_descriptor;
-        if (_swix(swinum_miscop, _IN(1)| _OUT(1),
-                                 FileCore_MiscOp_ReadInfo,
-                                 &fs_descriptor) == NULL)
+        if (_swix(fsparams->swi_miscop, _IN(1)| _OUT(1),
+                                        FileCore_MiscOp_ReadInfo,
+                                        &fs_descriptor) == NULL)
             fs_flags = *fs_descriptor; /* Flags are in the first word */
     }
     else
@@ -183,11 +168,11 @@ void find_filecore_module_drives(const char *modname,
             want_name = (ffmd_flags & FFMD_NAME_FIXED) ? true : false;
         }
 
-        if (swinum_miscop == 0 ||
-            _swix(swinum_miscop, _INR(0,1)|_OUT(2), 7, drive, &drive_status) != NULL)
+        if (fsparams->swi_miscop == FSP_NO_SWI ||
+            _swix(fsparams->swi_miscop, _INR(0,1)|_OUT(2), 7, drive, &drive_status) != NULL)
             drive_status = 0;
 
-        dprintf("Drive %i has status flags &%x", drive, drive_status);
+        dprintf("Drive %i has status flags &%lx\n", drive, drive_status);
 
         if (drive_status & FileCore_MiscOp_ReadStatus_Absent)
         {
@@ -196,8 +181,8 @@ void find_filecore_module_drives(const char *modname,
         }
 
         name = NULL;
-        if (want_name && swinum_describe)
-            name = read_drive_name(drive, swinum_describe, buffer);
+        if (want_name)
+            name = read_drive_name(fsparams, drive, buffer);
 
         drive_callback(private, drive, name, is_removeable, is_ejectable, is_floppy);
     }

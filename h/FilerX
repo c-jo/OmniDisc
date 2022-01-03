@@ -6,7 +6,7 @@
 
 #include "Icon.h"
 #include "Tools.h"
-
+#include "FSParameters.h"
 
 #define UNUSED(x) (void)x
 
@@ -35,8 +35,8 @@ typedef struct
 
 typedef struct FS_s
 {
-    char      module[12];
-    char      name[8];
+    fsparameters_t *fsparams;
+
     bool      fd_names;
     unsigned  posiion;
     Drive     drive[8];
@@ -49,7 +49,7 @@ extern FS *fses;
 extern Icon *icons;
 
 
-/*************************************************** Gerph *********
+/*******************************************************************
  Function:      fsdrive_tool_capable
  Description:   Check if we can invoke the external tools for this drive
  Parameters:    fs-> the FS to invoke on
@@ -60,7 +60,7 @@ extern Icon *icons;
 bool fsdrive_tool_capable(FS *fs, int drive,
                           tooloperation_t tooloperation);
 
-/*************************************************** Gerph *********
+/*******************************************************************
  Function:      fsdrive_tool_invoke
  Description:   Invoke one of the external tools.
  Parameters:    fs-> the FS to invoke on

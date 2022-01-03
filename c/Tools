@@ -22,6 +22,17 @@ static const char *tooldisctype_names[3] = {
 
 #define FORM_MAX (2)
 
+/* Define this to debug this file */
+/* #define DEBUG */
+
+
+#ifdef DEBUG
+#define dprintf if (1) printf
+#else
+#define dprintf if (0) printf
+#endif
+
+
 /*******************************************************************
  Function:      build_tool_variable
  Description:   Build a variable name which should be used to invoke
@@ -77,6 +88,8 @@ const char *build_tool_variable(tooloperation_t   tooloperation,
             return NULL;
     }
 
+    dprintf("Tool variable: %s\n", varname);
+
     return varname;
 }
 
@@ -103,6 +116,14 @@ const char *build_tool_command(tooloperation_t   tooloperation,
     const char *varname;
     const char *varval;
 
+    dprintf("Building tool command for op %i, type %i, driver %p, CLI=%i, device %i\n",
+            tooloperation,
+            tooldisctype,
+            driver,
+            is_cli,
+            device,
+            form);
+
     /* Try each form until we find one that is set, or there are none */
     for (form = 0; form < FORM_MAX; form++)
     {
@@ -112,6 +133,11 @@ const char *build_tool_command(tooloperation_t   tooloperation,
                                       is_cli,
                                       device,
                                       form);
+        if (varname == NULL)
+        {
+            dprintf("Variable not available for form %i\n", form);
+            continue;
+        }
         varval = getenv(varname);
         if (varval != NULL)
             break;
@@ -130,6 +156,8 @@ const char *build_tool_command(tooloperation_t   tooloperation,
             is_cli ? "-cli" : "",
             driver,
             device);
+
+    dprintf("Tool command: %s\n", command);
 
     return command;
 }

@@ -226,29 +226,31 @@ static void clear_icons(void)
  ******************************************************************/
 static void menu_update(FS *fs, int drive)
 {
-    sprintf(drive_menu.menu.title, "%s::%d", fs->name, drive);
+    sprintf(drive_menu.menu.title, "%s::%d", fs->fsparams->fsname, drive);
 
     /* Decide which operations are available by looking at the commands
        that can be performed. */
 
+    printf("Attempting shading for %s, %i\n", fs->fsparams->fsname, drive);
 #ifdef SUPPORT_EJECT
     menu_shade(&drive_menu.menu, menuitem_format,
                (bool)! fs->drive[drive].is_ejectable);
 #endif
+    printf("Format shading\n");
 
     /* Format */
     menu_shade(&drive_menu.menu, menuitem_format,
-               (bool)! fsdrive_tool_capable(menu_drive.fs, menu_drive.drive, to_format));
+               (bool)! fsdrive_tool_capable(fs, menu_drive.drive, to_format));
 
 #ifdef SUPPORT_CHECK
     /* Check */
     menu_shade(&drive_menu.menu, menuitem_check,
-               (bool)! fsdrive_tool_capable(menu_drive.fs, menu_drive.drive, to_check));
+               (bool)! fsdrive_tool_capable(fs, menu_drive.drive, to_check));
 #endif
 
     /* Verify */
     menu_shade(&drive_menu.menu, menuitem_verify,
-               (bool)! fsdrive_tool_capable(menu_drive.fs, menu_drive.drive, to_verify));
+               (bool)! fsdrive_tool_capable(fs, menu_drive.drive, to_verify));
 
     menu_drive.fs    = fs;
     menu_drive.drive = drive;
@@ -284,10 +286,10 @@ static void mouse_click(WimpMouseClickEvent *event)
         char cmd[48];
         if (fs->drive[drive].discname[0] == ':')
             sprintf(cmd, "%%Filer_OpenDir %s:%s.$",
-                         fs->name, fs->drive[drive].discname);
+                         fs->fsparams->fsname, fs->drive[drive].discname);
         else
             sprintf(cmd, "%%Filer_OpenDir %s::%s.$",
-                         fs->name, fs->drive[drive].discname);
+                         fs->fsparams->fsname, fs->drive[drive].discname);
 
         _swix(OS_CLI, _IN(0), cmd);
     }
@@ -300,7 +302,7 @@ static void mouse_click(WimpMouseClickEvent *event)
         if (event->window_handle == -2)
         {
             x -= 0x40;
-            y  = 96+44*6;
+            y  = 96+44 * menuitem_LAST;
         }
         menu_update(fs, drive);
         _swi(Wimp_CreateMenu, _INR(1,3), &drive_menu, x, y);
@@ -360,7 +362,7 @@ static void menu_selection(WimpMenuSelectionEvent *event)
             {
                 char cmd[64];
                 sprintf(cmd, "%%ShowFree -FS %s %d",
-                             menu_drive.fs->name, menu_drive.drive);
+                             menu_drive.fs->fsparams->fsname, menu_drive.drive);
                 _swix(OS_CLI, _IN(0), &cmd);
 
             }

@@ -6,6 +6,7 @@
 #define FINDDRIVES_H
 
 #include "bool.h"
+#include "FSParameters.h"
 
 /* Flags for what drives will be examined and data returned */
 #define FFMD_REPORT_REMOVABLE   (1<<0)
@@ -27,13 +28,14 @@ typedef void (*found_filecore_drive_f)(void *private,
 /*******************************************************************
  Function:      find_filecore_module_drives
  Description:   Find which FileCore drives are available for a given FS.
- Parameters:    modname-> module name, used for looking up SWI names
+ Parameters:    fsparams-> the fsparameters_t structure which describes
+                    the FS we are accessing
                 ffmd_flags = FFMD_* flags to finding discs
                 drive_callback -> function to call with the drive numbers
                 private-> the private value to pass to callback function
  Returns:       none
  ******************************************************************/
-void find_filecore_module_drives(const char *modname,
+void find_filecore_module_drives(fsparameters_t *fsparams,
                                  unsigned long ffmd_flags,
                                  found_filecore_drive_f drive_callback,
                                  void *private);
