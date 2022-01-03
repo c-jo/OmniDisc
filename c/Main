@@ -24,7 +24,7 @@ static struct
 {
     FS      *fs;
     unsigned drive;
-} menu_drive = { 0, -0 };
+} menu_drive = { 0, 0 };
 
 static WimpMenu name_menu;
 
