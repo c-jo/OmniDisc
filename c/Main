@@ -17,14 +17,15 @@ static unsigned tray_window = 0;
 static struct drive_menu_s
 {
     WimpMenu menu;
-    WimpMenuItem more[5];
+    WimpMenuItem more[7];
 } drive_menu;
 
 static struct
 {
     FS      *fs;
     unsigned drive;
-} menu_drive = { 0, 0 };
+    int      x,y;
+} menu_drive = { 0, 0, 0, 0 };
 
 static WimpMenu name_menu;
 
@@ -88,12 +89,13 @@ static void make_menus(void)
     items = menu->items;
     make_item(&items[0], "Name disc", &name_menu,   false);
     make_item(&items[1], "Dismount",   NULL,        false);
-//    make_item(&items[2], "Format",     NULL,        true );
-    make_item(&items[2], "Backup...",  NULL,        true );
-    make_item(&items[3], "Share",     &share_menu,  false);
-    make_item(&items[4], "Verify...",  NULL,        true );
-    make_item(&items[5], "Free...",    NULL,        false);
-    items[5].flags |= WimpMenuItem_Last;
+    make_item(&items[2], "Format...",  NULL,        true );
+    make_item(&items[3], "Backup...",  NULL,        true );
+    make_item(&items[4], "Share",     &share_menu,  false);
+    make_item(&items[5], "Check...",   NULL,        true );
+    make_item(&items[6], "Verify...",  NULL,        true );
+    make_item(&items[7], "Free...",    NULL,        false);
+    items[7].flags |= WimpMenuItem_Last;
 }
 
 static void get_icon_size(const char *icon, unsigned *x, unsigned *y)
@@ -177,6 +179,54 @@ static void clear_icons(void)
     }
 }
 
+static void resize_icon(Drive *drive)
+{
+     unsigned xsize,ysize,textwidth;
+     WimpGetIconStateBlock gisblock;
+     WimpSetIconStateBlock sisblock;
+     WimpCreateIconBlock ciblock;
+     WimpDeleteIconBlock diblock;
+     int icon;
+
+     // Where is the icon in question?
+     gisblock.window_handle = -2;
+     gisblock.icon_handle   = drive->baricon;
+     _swix(Wimp_GetIconState, _IN(1), &gisblock);
+
+     // How big is the icon?
+     get_icon_size(drive->validation+1, &xsize, &ysize);
+     // And the text
+     _swix(Wimp_TextOp, _INR(0,2) | _OUT(0),
+               1, &new_name, 0, &textwidth);
+     // Which is bigger?
+     if (textwidth > xsize) xsize = textwidth;
+
+     // Resize the icon
+     _swix(Wimp_ResizeIcon, _INR(0,5),
+               -2, drive->baricon,
+               gisblock.icon.bbox.xmin,        -16,
+               gisblock.icon.bbox.xmin + xsize, 20+ysize);
+
+     // Refresh the icon
+     sisblock.window_handle = -2;
+     sisblock.icon_handle   = drive->baricon;
+     sisblock.EOR_word = sisblock.clear_word = 0;
+     _swix(Wimp_SetIconState, _IN(1), &sisblock);
+
+     // Create and delete a dummy icon so the icons shuffle as meeded
+     ciblock.window_handle  =  -5;
+     ciblock.icon.bbox.xmin =   0;
+     ciblock.icon.bbox.ymin = -16;
+     ciblock.icon.bbox.xmax =  34;
+     ciblock.icon.bbox.ymax =  54;
+     ciblock.icon.flags     =   0;
+
+     _swix(Wimp_CreateIcon, _INR(0,1)|_OUT(0), drive->baricon, &ciblock, &icon);
+     diblock.window_handle = -2;
+     diblock.icon_handle   = icon;
+     _swix(Wimp_DeleteIcon, _IN(1), &diblock);
+}
+
 static void mouse_click(WimpMouseClickEvent *event)
 {
     FS *fs = NULL;
@@ -217,25 +267,29 @@ static void mouse_click(WimpMouseClickEvent *event)
 
     if (event->buttons == 2) // Menu click on drive
     {
-        int x = event->mouse_x;
-        int y = event->mouse_y;
+        menu_drive.fs    = fs;
+        menu_drive.drive = drive;
+        menu_drive.x     = event->mouse_x;
+        menu_drive.y     = event->mouse_y;
 
         if (event->window_handle == -2)
         {
-            x -= 0x40;
-            y  = 96+44*6;
+            menu_drive.x -= 0x40;
+            menu_drive.y  = 96+44*8;
         }
+
         sprintf(drive_menu.menu.title, "%s::%d", fs->name, drive);
-        _swi(Wimp_CreateMenu, _INR(1,3), &drive_menu, x, y);
-        menu_drive.fs    = fs;
-        menu_drive.drive = drive;
+        _swi(Wimp_CreateMenu, _INR(1,3),
+                 &drive_menu, menu_drive.x, menu_drive.y);
     }
+
 }
 
 static void menu_selection(WimpMenuSelectionEvent *event)
 {
     if (menu_drive.fs != NULL && menu_drive.drive != -1)
     {
+        WimpGetPointerInfoBlock pointer_info;
         Drive *drive = &menu_drive.fs->drive[menu_drive.drive];
         char discspec[16];
         sprintf(discspec, "%s::%i", menu_drive.fs->name, menu_drive.drive);
@@ -246,47 +300,42 @@ static void menu_selection(WimpMenuSelectionEvent *event)
             if ((*event)[1] == 0)
             {
                 _kernel_oserror *err;
+                char cmd[32];
+                sprintf(cmd, "%%Filer_CloseDir %s", discspec);
+                _swix(OS_CLI, _IN(0), cmd);
 
                 err = _swix(OS_FSControl, _INR(0,2), 50, discspec, new_name);
                 if (err)
                     _swix(Wimp_ReportError, _INR(0,2), err, 1, 0);
                 else
                 {
-                    char cmd[32];
-                    int  sisblock[4] = { -2, drive->baricon, 0, 0 };
-
-                    strcpy(cmd, "%Filer_CloseDir ");
-                    strcat(cmd, discspec);
-                    _swix(OS_CLI, _IN(0), cmd);
-
                     strcpy(drive->discname, new_name);
-                    _swix(Wimp_SetIconState, _IN(1), &sisblock);
+                    resize_icon(drive);
                 }
             }
             break;
+
         case 1: // Dismount
             {
                 _kernel_oserror *err;
                 char cmd[32];
-                sprintf(cmd, "%s:%%Dismount %s",
+                sprintf(cmd, "%s:%%Dismount :%s",
                                   menu_drive.fs->name,drive->discname);
 
                 err = _swix(OS_CLI, _IN(0), cmd);
                 if (err)
                     _swix(Wimp_ReportError, _INR(0,2), err, 1, 0);
-                else
-                {
-                    strcpy(cmd, "%Filer_CloseDir ");
-                    strcat(cmd, discspec);
-                    _swix(OS_CLI, _IN(0), cmd);
-                }
             }
             break;
-        case 3: // Backup
+
+        case 2: // Format...
+        case 3: // Backup....
+        case 4: // Share
+        case 5: // Check...
+        case 6: // Veriify...
             break;
-        case 4: // Verify
-            break;
-        case 5: // Free
+
+        case 7: // Free
             {
                 char cmd[64];
                 sprintf(cmd, "%%ShowFree -FS %s %d",
@@ -295,8 +344,22 @@ static void menu_selection(WimpMenuSelectionEvent *event)
 
             }
         }
-        menu_drive.fs = 0;
-        menu_drive.drive = -1;
+
+        _swix(Wimp_GetPointerInfo, _IN(1), &pointer_info);
+
+        if (pointer_info.button_state & Wimp_MouseButtonAdjust)
+        {
+            _swi(Wimp_CreateMenu, _INR(1,3),
+                     &drive_menu, menu_drive.x, menu_drive.y);
+
+        }
+        else
+        {
+            menu_drive.fs    =  0;
+            menu_drive.drive = -1;
+        }
+
+
     }
 }
 
