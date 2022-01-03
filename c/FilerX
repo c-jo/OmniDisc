@@ -155,6 +155,71 @@ static _kernel_oserror* add_fs(const char *module, bool fd_names)
     return 0;
 }
 
+
+/*************************************************** Gerph *********
+ Function:      fsdrive_tool_command
+ Description:   Read the command for a given tool on a drive
+ Parameters:    fs-> the FS to invoke on
+                drive = the drive number
+                tooloperation = the operation to perform
+ Returns:       pointer to read only command to use, or NULL if not available
+ ******************************************************************/
+static const char * fsdrive_tool_command(FS *fs, int drive,
+                                         tooloperation_t tooloperation)
+{
+    Drive *drv = &fs->drive[drive];
+    tooldisctype_t tooldisctype = drv->is_floppy ? tdt_floppy : tdt_hard;
+    const char *cmd;
+
+    cmd = build_tool_command(tooloperation,
+                             tooldisctype,
+                             fs->name,
+                             false,
+                             drive);
+    return cmd;
+}
+
+/*************************************************** Gerph *********
+ Function:      fsdrive_tool_capable
+ Description:   Check if we can invoke the external tools for this drive
+ Parameters:    fs-> the FS to invoke on
+                drive = the drive number
+                tooloperation = the operation to perform
+ Returns:       true if we can use this tool, false if we cannot
+ ******************************************************************/
+bool fsdrive_tool_capable(FS *fs, int drive,
+                          tooloperation_t tooloperation)
+{
+    const char *cmd = fsdrive_tool_command(fs, drive, tooloperation);
+    return cmd == NULL ? false : true;
+}
+
+/*************************************************** Gerph *********
+ Function:      fsdrive_tool_invoke
+ Description:   Invoke one of the external tools.
+ Parameters:    fs-> the FS to invoke on
+                drive = the drive number
+                tooloperation = the operation to perform
+ Returns:       pointer to error, or NULL if successful
+ ******************************************************************/
+_kernel_oserror *fsdrive_tool_invoke(FS *fs, int drive,
+                                     tooloperation_t tooloperation)
+{
+    const char *cmd = fsdrive_tool_command(fs, drive, tooloperation);
+
+    if (cmd)
+    {
+        return _swix(Wimp_StartTask, _IN(0), cmd);
+    }
+    else
+    {
+        /* FIXME: Report that there's no tool available? */
+    }
+
+    return NULL;
+}
+
+
 static _kernel_oserror*cmd_desktop(const char* arg_string, void *pw)
 {
     UNUSED(pw);

@@ -5,6 +5,7 @@
 #include "Wimp.h"
 
 #include "Icon.h"
+#include "Tools.h"
 
 
 #define UNUSED(x) (void)x
@@ -46,5 +47,28 @@ typedef struct FS_s
 extern FS *fses;
 
 extern Icon *icons;
+
+
+/*************************************************** Gerph *********
+ Function:      fsdrive_tool_capable
+ Description:   Check if we can invoke the external tools for this drive
+ Parameters:    fs-> the FS to invoke on
+                drive = the drive number
+                tooloperation = the operation to perform
+ Returns:       true if we can use this tool, false if we cannot
+ ******************************************************************/
+bool fsdrive_tool_capable(FS *fs, int drive,
+                          tooloperation_t tooloperation);
+
+/*************************************************** Gerph *********
+ Function:      fsdrive_tool_invoke
+ Description:   Invoke one of the external tools.
+ Parameters:    fs-> the FS to invoke on
+                drive = the drive number
+                tooloperation = the operation to perform
+ Returns:       pointer to error, or NULL if successful
+ ******************************************************************/
+_kernel_oserror *fsdrive_tool_invoke(FS *fs, int drive,
+                                     tooloperation_t tooloperation);
 
 #endif

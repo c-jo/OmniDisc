@@ -226,38 +226,24 @@ static void clear_icons(void)
  ******************************************************************/
 static void menu_update(FS *fs, int drive)
 {
-    const char *cmd;
-    tooldisctype_t tooldisctype = tdt_hard; /* FIXME: We don't know if it should be treated as floppy/hard here */
     sprintf(drive_menu.menu.title, "%s::%d", fs->name, drive);
 
     /* Decide which operations are available by looking at the commands
        that can be performed. */
 
     /* Format */
-    cmd = build_tool_command(to_format,
-                             tooldisctype,
-                             fs->name,
-                             false,
-                             drive);
-    menu_shade(&drive_menu.menu, menuitem_format, (bool)(cmd==NULL));
+    menu_shade(&drive_menu.menu, menuitem_format,
+               ! fsdrive_tool_capable(menu_drive.fs, menu_drive.drive, to_format));
 
 #ifdef SUPPORT_CHECK
     /* Check */
-    cmd = build_tool_command(to_check,
-                             tooldisctype,
-                             fs->name,
-                             false,
-                             drive);
-    menu_shade(&drive_menu.menu, menuitem_check, (bool)(cmd==NULL));
+    menu_shade(&drive_menu.menu, menuitem_check,
+               ! fsdrive_tool_capable(menu_drive.fs, menu_drive.drive, to_check));
 #endif
 
     /* Verify */
-    cmd = build_tool_command(to_verify,
-                             tooldisctype,
-                             fs->name,
-                             false,
-                             drive);
-    menu_shade(&drive_menu.menu, menuitem_verify, (bool)(cmd==NULL));
+    menu_shade(&drive_menu.menu, menuitem_verify,
+               ! fsdrive_tool_capable(menu_drive.fs, menu_drive.drive, to_verify));
 
     menu_drive.fs    = fs;
     menu_drive.drive = drive;
@@ -349,8 +335,7 @@ static void menu_selection(WimpMenuSelectionEvent *event)
         case menuitem_verify:
             {
                 tooloperation_t tooloperation;
-                tooldisctype_t tooldisctype = tdt_hard;
-                const char *cmd;
+                _kernel_oserror *err;
 
                 if (menuitem == menuitem_format)
                     tooloperation = to_format;
@@ -358,19 +343,11 @@ static void menu_selection(WimpMenuSelectionEvent *event)
                     tooloperation = to_check;
                 else /* Always default to verify */
                     tooloperation = to_verify;
-                cmd = build_tool_command(tooloperation,
-                                         tooldisctype,
-                                         menu_drive.fs->name,
-                                         false,
-                                         menu_drive.drive);
-                if (cmd)
-                {
-                    _swix(Wimp_StartTask, _IN(0), cmd);
-                }
-                else
-                {
-                    /* FIXME: Report that there's no tool available? */
-                }
+
+                err = fsdrive_tool_invoke(menu_drive.fs, menu_drive.drive,
+                                          tooloperation);
+                if (err)
+                    _swi(Wimp_ReportError, _INR(0,2), err, 1, 0);
             }
             break;
 
