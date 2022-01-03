@@ -12,6 +12,8 @@
 
 /* Define this to add in the support for checking discs */
 #define SUPPORT_CHECK
+/* Define this to add in the support for ejecting discs */
+#define SUPPORT_EJECT
 
 static char *share_styles[] =
     { "Not shared", "Share protected", "Share unprotected" };
@@ -21,6 +23,9 @@ static unsigned tray_window = 0;
 enum menuitems_e {
     menuitem_namedisc,
     menuitem_dismount,
+#ifdef SUPPORT_EJECT
+    menuitem_eject,
+#endif
     menuitem_format,
     menuitem_backup,
     menuitem_share,
@@ -35,7 +40,7 @@ enum menuitems_e {
 static struct drive_menu_s
 {
     WimpMenu menu;
-    WimpMenuItem more[8];
+    WimpMenuItem more[9];
 } drive_menu;
 
 static struct
@@ -107,6 +112,9 @@ static void make_menus(void)
 
     make_item(&items[menuitem_namedisc], "Name disc", &name_menu,   false);
     make_item(&items[menuitem_dismount], "Dismount",   NULL,        false);
+#ifdef SUPPORT_EJECT
+    make_item(&items[menuitem_eject],    "Eject",     NULL,         true );
+#endif
     make_item(&items[menuitem_format], "Format...",  NULL,        true );
     make_item(&items[menuitem_backup], "Backup...",  NULL,        true );
     make_item(&items[menuitem_share], "Share",     &share_menu,  false);
@@ -324,6 +332,13 @@ static void menu_selection(WimpMenuSelectionEvent *event)
         case menuitem_dismount:
             _swi(Wimp_ReportError, _INR(0,2), "0000Dismount", 1, 0);
             break;
+
+#ifdef SUPPORT_EJECT
+        case menuitem_eject:
+            _swi(Wimp_ReportError, _INR(0,2), "0000Eject", 1, 0);
+            break;
+#endif
+
         case menuitem_backup:
             break;
 
