@@ -177,6 +177,20 @@ static void clear_icons(void)
     }
 }
 
+/*************************************************** Gerph *********
+ Function:      menu_update
+ Description:   Update the menu to reflect the selected FS and drive
+ Parameters:    fs-> the FS we're operating on
+                drive = the drive that's been selected
+ Returns:       none
+ ******************************************************************/
+static void menu_update(FS *fs, int drive)
+{
+    sprintf(drive_menu.menu.title, "%s::%d", fs->name, drive);
+    menu_drive.fs    = fs;
+    menu_drive.drive = drive;
+}
+
 static void mouse_click(WimpMouseClickEvent *event)
 {
     FS *fs = NULL;
@@ -225,10 +239,8 @@ static void mouse_click(WimpMouseClickEvent *event)
             x -= 0x40;
             y  = 96+44*6;
         }
-        sprintf(drive_menu.menu.title, "%s::%d", fs->name, drive);
+        menu_update(fs, drive);
         _swi(Wimp_CreateMenu, _INR(1,3), &drive_menu, x, y);
-        menu_drive.fs    = fs;
-        menu_drive.drive = drive;
     }
 }
 
