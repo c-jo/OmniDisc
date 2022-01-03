@@ -1,4 +1,5 @@
 #include "FilerX.h"
+#include "Tools.h"
 #include "swis.h"
 
 #include <stdlib.h>
@@ -9,15 +10,32 @@
 #include "fortify.h"
 #endif
 
+/* Define this to add in the support for checking discs */
+#define SUPPORT_CHECK
+
 static char *share_styles[] =
     { "Not shared", "Share protected", "Share unprotected" };
 
 static unsigned tray_window = 0;
 
+enum menuitems_e {
+    menuitem_namedisc,
+    menuitem_dismount,
+    menuitem_format,
+    menuitem_backup,
+    menuitem_share,
+    menuitem_verify,
+#ifdef SUPPORT_CHECK
+    menuitem_check,
+#endif
+    menuitem_free,
+    menuitem_LAST
+};
+
 static struct drive_menu_s
 {
     WimpMenu menu;
-    WimpMenuItem more[5];
+    WimpMenuItem more[8];
 } drive_menu;
 
 static struct
@@ -86,14 +104,28 @@ static void make_menus(void)
     make_menu(menu, "xxFS::x");
 
     items = menu->items;
-    make_item(&items[0], "Name disc", &name_menu,   false);
-    make_item(&items[1], "Dismount",   NULL,        false);
-//    make_item(&items[2], "Format",     NULL,        true );
-    make_item(&items[2], "Backup...",  NULL,        true );
-    make_item(&items[3], "Share",     &share_menu,  false);
-    make_item(&items[4], "Verify...",  NULL,        true );
-    make_item(&items[5], "Free...",    NULL,        false);
-    items[5].flags |= WimpMenuItem_Last;
+
+    make_item(&items[menuitem_namedisc], "Name disc", &name_menu,   false);
+    make_item(&items[menuitem_dismount], "Dismount",   NULL,        false);
+    make_item(&items[menuitem_format], "Format...",  NULL,        true );
+    make_item(&items[menuitem_backup], "Backup...",  NULL,        true );
+    make_item(&items[menuitem_share], "Share",     &share_menu,  false);
+    make_item(&items[menuitem_verify], "Verify...",  NULL,        true );
+#ifdef SUPPORT_CHECK
+    make_item(&items[menuitem_check], "Check...",  NULL,        true );
+#endif
+    make_item(&items[menuitem_free], "Free...",    NULL,        false);
+    items[menuitem_LAST - 1].flags |= WimpMenuItem_Last;
+}
+
+static void menu_shade(WimpMenu *menu, int item, bool shaded)
+{
+    WimpMenuItem *items = menu->items;
+
+    if (shaded)
+        items[item].flags = items[item].flags | WimpIcon_Shaded;
+    else
+        items[item].flags = items[item].flags & ~WimpIcon_Shaded;
 }
 
 static void get_icon_size(const char *icon, unsigned *x, unsigned *y)
@@ -186,7 +218,39 @@ static void clear_icons(void)
  ******************************************************************/
 static void menu_update(FS *fs, int drive)
 {
+    const char *cmd;
+    tooldisctype_t tooldisctype = tdt_hard; /* FIXME: We don't know if it should be treated as floppy/hard here */
     sprintf(drive_menu.menu.title, "%s::%d", fs->name, drive);
+
+    /* Decide which operations are available by looking at the commands
+       that can be performed. */
+
+    /* Format */
+    cmd = build_tool_command(to_format,
+                             tooldisctype,
+                             fs->name,
+                             false,
+                             drive);
+    menu_shade(&drive_menu.menu, menuitem_format, (bool)(cmd==NULL));
+
+#ifdef SUPPORT_CHECK
+    /* Check */
+    cmd = build_tool_command(to_check,
+                             tooldisctype,
+                             fs->name,
+                             false,
+                             drive);
+    menu_shade(&drive_menu.menu, menuitem_check, (bool)(cmd==NULL));
+#endif
+
+    /* Verify */
+    cmd = build_tool_command(to_verify,
+                             tooldisctype,
+                             fs->name,
+                             false,
+                             drive);
+    menu_shade(&drive_menu.menu, menuitem_verify, (bool)(cmd==NULL));
+
     menu_drive.fs    = fs;
     menu_drive.drive = drive;
 }
@@ -248,22 +312,54 @@ static void menu_selection(WimpMenuSelectionEvent *event)
 {
     if (menu_drive.fs != NULL && menu_drive.drive != -1)
     {
-        switch (*event[0])
+        int menuitem = *event[0];
+        switch (menuitem)
         {
-        case 0: // Name Disc
+        case menuitem_namedisc:
             if (event[1] == 0)
             {
                 _swi(Wimp_ReportError, _INR(0,2), "0000Dismount", 1, 0);
             }
             break;
-        case 1: // Dismount
+        case menuitem_dismount:
             _swi(Wimp_ReportError, _INR(0,2), "0000Dismount", 1, 0);
             break;
-        case 3: // Backup
+        case menuitem_backup:
             break;
-        case 4: // Verify
+
+        case menuitem_format:
+#ifdef SUPPORT_CHECK
+        case menuitem_check:
+#endif
+        case menuitem_verify:
+            {
+                tooloperation_t tooloperation;
+                tooldisctype_t tooldisctype = tdt_hard;
+                const char *cmd;
+
+                if (menuitem == menuitem_format)
+                    tooloperation = to_format;
+                else if (menuitem == menuitem_check)
+                    tooloperation = to_check;
+                else /* Always default to verify */
+                    tooloperation = to_verify;
+                cmd = build_tool_command(tooloperation,
+                                         tooldisctype,
+                                         menu_drive.fs->name,
+                                         false,
+                                         menu_drive.drive);
+                if (cmd)
+                {
+                    _swix(Wimp_StartTask, _IN(0), cmd);
+                }
+                else
+                {
+                    /* FIXME: Report that there's no tool available? */
+                }
+            }
             break;
-        case 5: // Free
+
+        case menuitem_free: // Free
             {
                 char cmd[64];
                 sprintf(cmd, "%%ShowFree -FS %s %d",
