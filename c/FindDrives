@@ -15,6 +15,16 @@
 
 #define DRIVE_MAX (8)
 
+/* Define this to debug this file */
+/* #define DEBUG */
+
+
+#ifdef DEBUG
+#define dprintf if (1) printf
+#else
+#define dprintf if (0) printf
+#endif
+
 
 /*******************************************************************
  Function:      read_drive_name
@@ -71,6 +81,10 @@ void find_filecore_module_drives(const char *modname,
     int drive;
     unsigned long fs_flags = 0;
 
+    /* Special case some filing systems that have different SWI prefixes */
+    if (strcmp(modname, "RAMFS") == 0)
+        modname = "RamFS";
+
     strcpy(buffer, modname);
     strcat(buffer, "_Drives");
 
@@ -80,10 +94,12 @@ void find_filecore_module_drives(const char *modname,
     if (_swix(swinum_drives, _OUTR(1,2), &floppies, &winnies) != 0)
         return;
 
+    dprintf("floppies = %i, winnies = %i\n", floppies, winnies);
+
     strcpy(buffer, modname);
     strcat(buffer, "_MiscOp");
     if (_swix(OS_SWINumberFromString, _IN(1) | _OUT(0), buffer, &swinum_miscop) != 0)
-        return;
+        swinum_miscop = 0;
 
     strcpy(buffer, modname);
     strcat(buffer, "_DescribeDisc");
@@ -93,23 +109,29 @@ void find_filecore_module_drives(const char *modname,
 
     /* Decide where we split the removeable disc numbers, based on the flags from the FS */
     first_fixed = 4;
+    if (swinum_miscop)
     {
         unsigned long *fs_descriptor;
         if (_swix(swinum_miscop, _IN(1)| _OUT(1),
                                  FileCore_MiscOp_ReadInfo,
                                  &fs_descriptor) == NULL)
             fs_flags = *fs_descriptor; /* Flags are in the first word */
+    }
+    else
+    {
+        /* There is no _MiscOp, so assume the flags are 0 (eg RAMFS) */
+        fs_flags = 0;
+    }
 
-        if (fs_flags & FileCore_DiscFlags_MountFloppiesLikeFixedDiscs)
-        {
-            /* Floppy discs range is really fixed discs */
-            first_fixed = 0;
-        }
-        else if (fs_flags & FileCore_DiscFlags_HardDiscsCanEject)
-        {
-            /* Hard discs range is really floppies */
-            first_fixed = 8;
-        }
+    if (fs_flags & FileCore_DiscFlags_MountFloppiesLikeFixedDiscs)
+    {
+        /* Floppy discs range is really fixed discs */
+        first_fixed = 0;
+    }
+    else if (fs_flags & FileCore_DiscFlags_HardDiscsCanEject)
+    {
+        /* Hard discs range is really floppies */
+        first_fixed = 8;
     }
 
     for (drive = 0; drive < DRIVE_MAX; ++drive)
@@ -161,8 +183,11 @@ void find_filecore_module_drives(const char *modname,
             want_name = (ffmd_flags & FFMD_NAME_FIXED) ? true : false;
         }
 
-        if (_swix(swinum_miscop, _INR(0,1)|_OUT(2), 7, drive, &drive_status) != NULL)
+        if (swinum_miscop == 0 ||
+            _swix(swinum_miscop, _INR(0,1)|_OUT(2), 7, drive, &drive_status) != NULL)
             drive_status = 0;
+
+        dprintf("Drive %i has status flags &%x", drive, drive_status);
 
         if (drive_status & FileCore_MiscOp_ReadStatus_Absent)
         {
