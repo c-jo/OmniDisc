@@ -231,19 +231,24 @@ static void menu_update(FS *fs, int drive)
     /* Decide which operations are available by looking at the commands
        that can be performed. */
 
+#ifdef SUPPORT_EJECT
+    menu_shade(&drive_menu.menu, menuitem_format,
+               (bool)! fs->drive[drive].is_ejectable);
+#endif
+
     /* Format */
     menu_shade(&drive_menu.menu, menuitem_format,
-               ! fsdrive_tool_capable(menu_drive.fs, menu_drive.drive, to_format));
+               (bool)! fsdrive_tool_capable(menu_drive.fs, menu_drive.drive, to_format));
 
 #ifdef SUPPORT_CHECK
     /* Check */
     menu_shade(&drive_menu.menu, menuitem_check,
-               ! fsdrive_tool_capable(menu_drive.fs, menu_drive.drive, to_check));
+               (bool)! fsdrive_tool_capable(menu_drive.fs, menu_drive.drive, to_check));
 #endif
 
     /* Verify */
     menu_shade(&drive_menu.menu, menuitem_verify,
-               ! fsdrive_tool_capable(menu_drive.fs, menu_drive.drive, to_verify));
+               (bool)! fsdrive_tool_capable(menu_drive.fs, menu_drive.drive, to_verify));
 
     menu_drive.fs    = fs;
     menu_drive.drive = drive;
