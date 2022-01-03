@@ -67,7 +67,8 @@ static char *fs_drive_name(FS* fs, int drive)
     return buffer;
 }
 
-static void add_drive(FS *fs, int drive, const char *name, bool is_removeable)
+static void add_drive(FS *fs, int drive, const char *name,
+                      bool is_removeable, bool is_ejectable, bool is_floppy)
 {
     Drive *drv = &(fs->drive[drive]);
 
@@ -78,6 +79,10 @@ static void add_drive(FS *fs, int drive, const char *name, bool is_removeable)
 
     drv->discname[10] = '\0';
     drv->validation = icon_find(icons, fs->name, drive, drv->discname);
+
+    drv->is_removeable = is_removeable;
+    drv->is_ejectable = is_ejectable;
+    drv->is_floppy = is_floppy;
 
     pollword |= Pollword_Drive;
     printf("Adding drive %s %d %s\n", fs->name, drive, name);
@@ -133,7 +138,10 @@ static _kernel_oserror* add_fs(const char *module, bool fd_names)
 
     for (n=0; n<8; ++n)
     {
-        fs->drive[n].flags       =  0;
+        fs->drive[n].is_removeable = false;
+        fs->drive[n].is_ejectable  = false;
+        fs->drive[n].is_floppy     = false;
+
         fs->drive[n].discname[0] =  0;
         fs->drive[n].validation  =  0;
         fs->drive[n].baricon     = -1;
@@ -172,7 +180,7 @@ static _kernel_oserror*cmd_add_fs(const char* arg_string, void *pw)
     if (e)
         return e;
 
-    return add_fs((char*)ra_buf[0], ra_buf[1] == 0 ? 0 : 1);
+    return add_fs((char*)ra_buf[0], ra_buf[1] == 0 ? false : true);
 
 }
 
@@ -306,7 +314,10 @@ _kernel_oserror *upcall_handler(_kernel_swi_regs *r, void *pw)
                     !strncmp(drivespec, fs->name, fslen))
                 {
                     if (upcall == 24)
-                        add_drive(fs, drive, fs_drive_name(fs, drive), false);
+                    {
+                        /* Drive added - we don't know if it's removeable, ejectable or floppy style from here */
+                        add_drive(fs, drive, fs_drive_name(fs, drive), false, false, false);
+                    }
 
                     if (upcall == 25)
                         remove_drive(fs, drive);

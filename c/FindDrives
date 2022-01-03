@@ -69,6 +69,7 @@ void find_filecore_module_drives(const char *modname,
     unsigned floppies, winnies;
     int first_fixed;
     int drive;
+    unsigned long fs_flags = 0;
 
     strcpy(buffer, modname);
     strcat(buffer, "_Drives");
@@ -94,7 +95,6 @@ void find_filecore_module_drives(const char *modname,
     first_fixed = 4;
     {
         unsigned long *fs_descriptor;
-        unsigned long fs_flags = 0;
         if (_swix(swinum_miscop, _IN(1)| _OUT(1),
                                  FileCore_MiscOp_ReadInfo,
                                  &fs_descriptor) == NULL)
@@ -114,7 +114,9 @@ void find_filecore_module_drives(const char *modname,
 
     for (drive = 0; drive < DRIVE_MAX; ++drive)
     {
+        bool is_floppy; /* Indicates if it mounts like a floppy */
         bool is_removeable;
+        bool is_ejectable;
         bool want_name;
         unsigned long drive_status;
         char *name;
@@ -131,8 +133,19 @@ void find_filecore_module_drives(const char *modname,
             continue;
         }
 
+        if (drive < 4)
+        {
+            is_floppy = (fs_flags & FileCore_DiscFlags_MountFloppiesLikeFixedDiscs) ? false : true;
+            is_ejectable = (fs_flags & FileCore_DiscFlags_FloppiesCanEject) ? true : false;
+        }
+        else
+        {
+            is_floppy = (fs_flags & FileCore_DiscFlags_HardDiscsCanMount) ? true : false;
+            is_ejectable = (fs_flags & FileCore_DiscFlags_HardDiscsCanEject) ? true : false;
+        }
+
         /* We now know that the disc is configured as existing, and whether the
-         * disc is treated as removeable.
+         * disc is treated as removeable, floppy and ejectable.
          */
         if (is_removeable)
         {
@@ -161,6 +174,6 @@ void find_filecore_module_drives(const char *modname,
         if (want_name && swinum_describe)
             name = read_drive_name(drive, swinum_describe, buffer);
 
-        drive_callback(private, drive, name, is_removeable);
+        drive_callback(private, drive, name, is_removeable, is_ejectable, is_floppy);
     }
 }

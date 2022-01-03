@@ -13,10 +13,13 @@
 /**
  * Simple call which reports found drives.
  */
-void got_drive(void *private, int drive, const char *name, bool is_removeable)
+void got_drive(void *private, int drive, const char *name,
+               bool is_removeable, bool is_ejectable, bool is_floppy)
 {
-    printf("Found a drive %i (%s): %s\n", drive,
+    printf("Found a drive %i (%s): %s, %s, %s\n", drive,
                                           is_removeable ? "removeable" : "fixed",
+                                          is_ejectable ? "ejectable" : "no-eject",
+                                          is_floppy ? "mount-floppy" : "mount-harddisc",
                                           name ? name : "<NULL>");
 }
 

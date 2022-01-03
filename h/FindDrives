@@ -13,10 +13,16 @@
 #define FFMD_NAME_REMOVABLE     (1<<2)
 #define FFMD_NAME_FIXED         (1<<3)
 
+/* is_removeable means that the disc is to be treated as a device that can change dynamically.
+ * is_ejectable means that the disc can be ejected.
+ * is_floppy means that the disc should be mounted (and formatted) as a floppy.
+ */
 typedef void (*found_filecore_drive_f)(void *private,
                                        int drive_number,
                                        const char *name,
-                                       bool is_removeable);
+                                       bool is_removeable,
+                                       bool is_ejectable,
+                                       bool is_floppy);
 
 /*******************************************************************
  Function:      find_filecore_module_drives
