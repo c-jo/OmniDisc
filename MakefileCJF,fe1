@@ -42,6 +42,7 @@ OBJS       = \
              o.Main \
              o.FindDrives \
              o.Icon \
+             o.IconPosition \
 
 FORTIFY   ?= no
 
