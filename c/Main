@@ -308,7 +308,7 @@ static void mouse_click(WimpMouseClickEvent *event)
             x -= 0x40;
             y  = 96 + 44*menuitem_LAST;
         }
-        sprintf(drive_menu.menu.title, "%s::%d", fs->name, drive);
+        sprintf(drive_menu.menu.title, "%s::%d", fs->fsparams->name, drive);
 
         if (sharefs)
         {

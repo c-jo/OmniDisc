@@ -89,6 +89,6 @@ _kernel_oserror *fsdrive_tool_invoke(FS *fs, int drive,
  Returns:       pointer to error, or NULL if successful
  ******************************************************************/
 _kernel_oserror *fsdrive_share(FS *fs, int drive,
-                               ShareType *sharetype);
+                               ShareType sharetype);
 
 #endif
