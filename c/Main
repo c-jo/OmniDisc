@@ -306,9 +306,8 @@ static void mouse_click(WimpMouseClickEvent *event)
         if (event->window_handle == -2)
         {
             x -= 0x40;
-            y  = 96+44 * menuitem_LAST;
+            y  = 96 + 44*menuitem_LAST;
         }
-<<<<<<< HEAD
         sprintf(drive_menu.menu.title, "%s::%d", fs->name, drive);
 
         if (sharefs)
@@ -353,7 +352,8 @@ static void menu_selection(WimpMenuSelectionEvent *event)
         case menuitem_share:
         {
             _kernel_oserror *err;
-            err = fsdrive_Share(menu_drive.fs, menu_drive.drive, sharetype);
+            ShareType sharetype = (ShareType)((*event)[1]);
+            err = fsdrive_share(menu_drive.fs, menu_drive.drive, sharetype);
             if (err) _swix(Wimp_ReportError, _INR(0,2), err, 1, 0);
             break;
         }
@@ -394,6 +394,7 @@ static void menu_selection(WimpMenuSelectionEvent *event)
                 sprintf(cmd, "%%ShowFree -FS %s %d",
                              menu_drive.fs->fsparams->fsname, menu_drive.drive);
                 _swix(OS_CLI, _IN(0), &cmd);
+            }
         }
         menu_drive.fs = 0;
         menu_drive.drive = -1;
