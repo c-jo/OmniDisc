@@ -1,0 +1,43 @@
+/*******************************************************************
+ * File:        FSParameters
+ * Purpose:     Read parameters for a filing system
+ * Date:        03 Jan 2022
+ ******************************************************************/
+
+#ifndef FSPARAMETERS_H
+#define FSPARAMETERS_H
+
+typedef struct fsparameters_s {
+    char name[32];
+    char swiprefix[32];
+    char fsname[32];
+    int fsnumber;
+
+    int swi_drives;
+    int swi_discop;
+    int swi_miscop;
+    int swi_describedisc;
+} fsparameters_t;
+
+/* Constant used when the SWI is not known */
+#define FSP_NO_SWI (-1)
+
+/*******************************************************************
+ Function:      fsparams_create
+ Description:   Create a table of parameters for a FileCore filing system
+                given the name of the filing system or module.
+ Parameters:    name-> the name of the filing system/module
+ Returns:       pointer to the newly allocated parameters block, or NULL
+                if no details were found.
+ ******************************************************************/
+fsparameters_t *fsparams_create(const char *name);
+
+/*******************************************************************
+ Function:      fsparams_destroy
+ Description:   Destroy the FSParameters block.
+ Parameters:    fsp-> the parameters to destroy
+ Returns:       none
+ ******************************************************************/
+void fsparams_destroy(fsparameters_t *fsp);
+
+#endif
