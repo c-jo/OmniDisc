@@ -29,9 +29,11 @@ jobs:
       - amu -f MakefileTestFindDrives
       - amu -f MakefileTestIcons
       - amu -f MakefileTestIconPos
+      - dir ^
       - amu -f MakefileTestTools
 
       # Run the tests (which should at least not crash)
+      - dir Test
       - echo + Test find drives
       - /aif32.TestFindDrives
       - echo + Test icon selection
