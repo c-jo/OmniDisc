@@ -352,35 +352,9 @@ static void menu_selection(WimpMenuSelectionEvent *event)
             break;
         case menuitem_share:
         {
-            e = fsdrive_Share(menu_drive.fs, menu_drive.drive, sharetype);
-            if (e) _swix(Wimp_ReportError, _INR(0,2), e, 1, 0);
-
-            char path[32];
-            Drive *drv =&(menu_drive.fs->drive[menu_drive.drive]);
-            ShareType share = (ShareType)((*event)[1]);
-            sprintf(path, "%s::%s.$",
-                          menu_drive.fs->name,
-                          drv->discname);
-
-            if (drv->share != (*event)[1])
-            {
-                switch ((*event)[1])
-                {
-                case 0: // Not shared
-                    e = _swix(ShareFS_StopShare, _INR(0,1), 0,
-                                  drv->discname);
-                    break;
-                case 1: // Share Protected
-                    e = _swix(ShareFS_CreateShare, _INR(0,2), ShareFS_ShareProtected,
-                                  drv->discname, path);
-                    break;
-                case 2: // Share Unprotected
-                    e = _swix(ShareFS_CreateShare, _INR(0,2), 0,
-                                  drv->discname, path);
-                    break;
-                }
-                else drv->share = (ShareType)(*event)[1];
-            }
+            _kernel_oserror *err;
+            err = fsdrive_Share(menu_drive.fs, menu_drive.drive, sharetype);
+            if (err) _swix(Wimp_ReportError, _INR(0,2), err, 1, 0);
             break;
         }
 #ifdef SUPPORT_EJECT
