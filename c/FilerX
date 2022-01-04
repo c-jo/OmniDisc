@@ -2,6 +2,7 @@
 #include "FilerXHdr.h"
 #include "FilerX.h"
 #include "FindDrives.h"
+#include "ShareFS.h"
 #include "Icon.h"
 
 #include "kernel.h"
@@ -208,7 +209,7 @@ _kernel_oserror *module_initialise(const char *cmd_tail, int podule_base,
     fses   = NULL;
     icons  = NULL;
 
-    sharefs = _swix(OS_SWINumberFromString, _IN(1), "ShareFS_CreateShare") == 0;
+    sharefs = _swix(OS_SWINumberFromString, _IN(1), "ShareFS_CreateShare") == NULL;
 
 #ifdef FORTIFY
     Fortify_EnterScope();
@@ -282,11 +283,11 @@ void module_service(int service_number, _kernel_swi_regs *r, void *private_word)
         }
         break;
 
-    case 0x97: // ShareFS_Starting
+    case Service_ShareFSStarting:
         sharefs = true;
         break;
 
-    case 0x98: // ShareFS_Terminating
+    case Service_ShareFSDying:
         sharefs = false;
         break;
     }

@@ -9,10 +9,7 @@
 #include "fortify.h"
 #endif
 
-#ifndef ShareFS_CreateShare
-#define ShareFS_CreateShare 0x47ac0
-#define ShareFS_StopShare   0x47ac1
-#endif
+#include "ShareFS.h"
 
 static char *share_styles[] =
     { "Not shared", "Share protected", "Share unprotected" };
@@ -292,11 +289,11 @@ static void menu_selection(WimpMenuSelectionEvent *event)
                                   drv->discname);
                     break;
                 case 1: // Share Protected
-                    e = _swix(ShareFS_CreateShare, _INR(0,2), 0x01,
+                    e = _swix(ShareFS_CreateShare, _INR(0,2), ShareFS_ShareProtected,
                                   drv->discname, path);
                     break;
                 case 2: // Share Unprotected
-                    e = _swix(ShareFS_CreateShare, _INR(0,2), 000,
+                    e = _swix(ShareFS_CreateShare, _INR(0,2), 0,
                                   drv->discname, path);
                     break;
                 }
