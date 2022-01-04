@@ -62,10 +62,10 @@ extern Icon *icons;
                 and pos will be updated with the icon to create next to
                 or the priority. Pos will be set to the positon io the
                 icobar. These values can be used with Wimp_CreateIcon.
- Parameters:    drive =  drive to create the icon far
+ Parameters:    drive => drive to create the icon far
                 icon  => icon handle or priority
                 pos   => position
- Returns:       Nowt.
+ Returns:       Nothing, but *icon and *pos will be updated..
  ******************************************************************/
 void icon_position(Drive *drive, int *pos, int *icon);
 

@@ -25,12 +25,11 @@ FS *fses = 0;
 static void init_fs(FS *fs, const char *name)
 {
     int n;
-    strcpy(fs->name, name);
+    strcpy(fs->fsparams->name, name);
     fs->next = 0;
 
     for (n=0; n < 8; ++n)
     {
-        fs->drive[n].flags = 0;
         fs->drive[n].discname[0] = 0;
         fs->drive[n].baricon = -1;
     }
