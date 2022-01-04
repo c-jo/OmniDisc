@@ -352,8 +352,12 @@ static void menu_selection(WimpMenuSelectionEvent *event)
             break;
         case menuitem_share:
         {
+            e = fsdrive_Share(menu_drive.fs, menu_drive.drive, sharetype);
+            if (e) _swix(Wimp_ReportError, _INR(0,2), e, 1, 0);
+
             char path[32];
             Drive *drv =&(menu_drive.fs->drive[menu_drive.drive]);
+            ShareType share = (ShareType)((*event)[1]);
             sprintf(path, "%s::%s.$",
                           menu_drive.fs->name,
                           drv->discname);
@@ -375,7 +379,6 @@ static void menu_selection(WimpMenuSelectionEvent *event)
                                   drv->discname, path);
                     break;
                 }
-                if (e) _swix(Wimp_ReportError, _INR(0,2), e, 1, 0);
                 else drv->share = (ShareType)(*event)[1];
             }
             break;

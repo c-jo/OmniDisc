@@ -80,4 +80,15 @@ bool fsdrive_tool_capable(FS *fs, int drive,
 _kernel_oserror *fsdrive_tool_invoke(FS *fs, int drive,
                                      tooloperation_t tooloperation);
 
+/*******************************************************************
+ Function:      fsdrive_share
+ Description:   Share (or unshare) a drive.
+ Parameters:    fs-> the FS to invoke on
+                drive = the drive number
+                sharetype = How to share
+ Returns:       pointer to error, or NULL if successful
+ ******************************************************************/
+_kernel_oserror *fsdrive_share(FS *fs, int drive,
+                               ShareType *sharetype);
+
 #endif

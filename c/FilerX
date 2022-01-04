@@ -208,6 +208,45 @@ _kernel_oserror *fsdrive_tool_invoke(FS *fs, int drive,
 }
 
 
+/*******************************************************************
+ Function:      fsdrive_share
+ Description:   Share (or unshare) a drive.
+ Parameters:    fs-> the FS to invoke on
+                drive = the drive number
+                sharetype = How to share
+ Returns:       pointer to error, or NULL if successful
+ ******************************************************************/
+_kernel_oserror *fsdrive_share(FS *fs, int drive,
+                               ShareType *sharetype)
+{
+    _kernel_oserror *e = 0;
+    char *discname =fs->drive[drive].discnme;
+    char path[32];
+    sprintf(path, "%s::%s.$", fs->name, discname);
+
+    if (drv->share != sharetype)
+    {
+        switch (sharetype)
+        {
+        case NotShared:
+            e = _swix(ShareFS_StopShare, _INR(0,1), 0,
+                          drv->discname);
+            break;
+        case ShareProtected:
+            e = _swix(ShareFS_CreateShare, _INR(0,2), ShareFS_ShareProtected,
+                          drv->discname, path);
+            break;
+        case ShareUnproteced:
+            e = _swix(ShareFS_CreateShare, _INR(0,2), 0,
+                          drv->discname, path);
+            break;
+        }
+        if (!e)
+            fs->drive[drive].share = sharetype;
+     }
+     return e;
+}
+
 static _kernel_oserror*cmd_desktop(const char* arg_string, void *pw)
 {
     UNUSED(pw);
