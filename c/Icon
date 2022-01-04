@@ -113,8 +113,6 @@ const char *icon_find(Icon* icons, const char *fs, int drive, const char *discna
     if (v)
         return v;
 
-    if (drive > 3) return "Sharddisc";
-    if (drive < 4) return "Sfloppydisc";
-
+    return (drive < 4) ? "Sfloppydisc" : "Sharddisc";
 }
 

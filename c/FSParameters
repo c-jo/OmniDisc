@@ -1,0 +1,192 @@
+/*******************************************************************
+ * File:        FSParameters
+ * Purpose:     Read parameters for a filing system
+ * Date:        03 Jan 2022
+ ******************************************************************/
+
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+
+#include "swis.h"
+
+#include "FSParameters.h"
+
+/* Special case mappings for things that we cannot work out */
+static char *name_swibase_mapping[][2] = {
+    { "RAMFS", "RamFS" },
+    { "RAM", "RamFS" },
+    { NULL, NULL }
+};
+
+/* Define this to debug this file */
+/* #define DEBUG */
+
+
+#ifdef DEBUG
+#define dprintf if (1) printf
+#else
+#define dprintf if (0) printf
+#endif
+
+
+/*******************************************************************
+ Function:      fsparams_create
+ Description:   Create a table of parameters for a FileCore filing system
+                given the name of the filing system or module.
+ Parameters:    name-> the name of the filing system/module
+ Returns:       pointer to the newly allocated parameters block, or NULL
+                if no details were found.
+ ******************************************************************/
+fsparameters_t *fsparams_create(const char *name)
+{
+    char buffer[128];
+    fsparameters_t *fsp = malloc(sizeof(*fsp));
+    if (!fsp)
+        return NULL;
+
+    /* The name is always the name we were supplied */
+    strcpy(fsp->name, name);
+    strcpy(fsp->swiprefix, name);
+    strcpy(fsp->fsname, name);
+    fsp->fsnumber = 0;
+
+    fsp->swi_discop = FSP_NO_SWI;
+    fsp->swi_drives = FSP_NO_SWI;
+    fsp->swi_describedisc = FSP_NO_SWI;
+    fsp->swi_miscop = FSP_NO_SWI;
+
+    dprintf("Attempting to create fsparams for %s\n", name);
+
+    /* Apply special translations for the SWI base */
+    {
+        char **mapping = name_swibase_mapping[0];
+        for (; mapping[0] != NULL; mapping++)
+        {
+            if (strcmp(fsp->name, mapping[0])==0)
+            {
+                strcpy(fsp->swiprefix, mapping[1]);
+                break;
+            }
+        }
+    }
+
+    /* Work out what the SWI prefix should be, trying what they gave (or we translated) first */
+    sprintf(buffer, "%s_DiscOp", fsp->swiprefix);
+    if (_swix(OS_SWINumberFromString, _IN(1) | _OUT(0), buffer, &fsp->swi_discop) != NULL)
+    {
+        /* Didn't match, so let's try a variation */
+        int len = strlen(fsp->swiprefix);
+        char *end = fsp->swiprefix + len;
+
+        if (len > 3 && end[-2] == 'F' && end[-1] == 'S')
+        {
+            /* It ends in 'FS', so let's try it without that on the end */
+            end[-2] = '\0';
+            sprintf(buffer, "%s_DiscOp", fsp->swiprefix);
+            if (_swix(OS_SWINumberFromString, _IN(1) | _OUT(0), buffer, &fsp->swi_discop) != NULL)
+                fsp->swi_discop = FSP_NO_SWI;
+        }
+        else if (len < 4 || end[-2] != 'F' || end[-1] != 'S')
+        {
+            /* It doesn't end in 'FS' (or it's short), so try adding that on the end */
+            strcat(fsp->swiprefix, "FS");
+            sprintf(buffer, "%s_DiscOp", fsp->swiprefix);
+            if (_swix(OS_SWINumberFromString, _IN(1) | _OUT(0), buffer, &fsp->swi_discop) != NULL)
+                fsp->swi_discop = FSP_NO_SWI;
+        }
+        else
+        {
+            /* We don't know. Give up. */
+            fsp->swi_discop = FSP_NO_SWI;
+        }
+    }
+
+    if (fsp->swi_discop == FSP_NO_SWI)
+    {
+        /* If we could not find a DiscOp SWI, we give up */
+        dprintf("  No DiscOp SWI, giving up\n");
+        free(fsp);
+        return NULL;
+    }
+
+    dprintf("SWI prefix is '%s'\n", fsp->swiprefix);
+
+    sprintf(buffer, "%s_Drives", fsp->swiprefix);
+    if (_swix(OS_SWINumberFromString, _IN(1) | _OUT(0), buffer, &fsp->swi_drives) != NULL)
+        fsp->swi_drives = FSP_NO_SWI;
+
+    sprintf(buffer, "%s_MiscOp", fsp->swiprefix);
+    if (_swix(OS_SWINumberFromString, _IN(1) | _OUT(0), buffer, &fsp->swi_miscop) != NULL)
+        fsp->swi_miscop = FSP_NO_SWI;
+
+    sprintf(buffer, "%s_DescribeDisc", fsp->swiprefix);
+    if (_swix(OS_SWINumberFromString, _IN(1) | _OUT(0), buffer, &fsp->swi_describedisc) != NULL)
+        fsp->swi_describedisc = FSP_NO_SWI;
+
+    dprintf("SWIs: DiscOp = &%x\n", fsp->swi_discop);
+    dprintf("      MiscOp = &%x\n", fsp->swi_miscop);
+    dprintf("      Drives = &%x\n", fsp->swi_drives);
+    dprintf("      DescribeDisc = &%x\n", fsp->swi_describedisc);
+
+    /* Now we need to find the filing system name */
+    {
+        void *fscb;
+        int fsnumber;
+        if (_swix(OS_FSControl, _INR(0, 2)|_OUTR(1, 2), 13, fsp->fsname, 1, &fsnumber, &fscb) != NULL ||
+            fscb == NULL)
+            fsnumber = 0;
+        if (fsnumber == 0)
+        {
+            /* The filing system isn't there as supplied, so we'll try the same tricks we
+             * did with the SWI prefix.
+             */
+
+            int len = strlen(fsp->fsname);
+            char *end = fsp->fsname + len;
+            if (len > 3 && end[-2] == 'F' && end[-1] == 'S')
+            {
+                /* It ends in 'FS', so let's try it without that on the end */
+                end[-2] = '\0';
+                if (_swix(OS_FSControl, _INR(0, 2)|_OUTR(1, 2), 13, fsp->fsname, 1, &fsnumber, &fscb) != NULL ||
+                    fscb == NULL)
+                    fsnumber = 0;
+            }
+            else if (len < 4 || end[-2] != 'F' || end[-1] != 'S')
+            {
+                /* It doesn't end in 'FS' (or it's short), so try adding that on the end */
+                strcat(fsp->fsname, "FS");
+                if (_swix(OS_FSControl, _INR(0, 2)|_OUTR(1, 2), 13, fsp->fsname, 1, &fsnumber, &fscb) != NULL ||
+                    fscb == NULL)
+                    fsnumber = 0;
+            }
+        }
+
+        if (fsnumber == 0)
+        {
+            /* We don't know what the FS is. Give up */
+            dprintf("  No filing system present, giving up\n");
+            free(fsp);
+            return NULL;
+        }
+
+        fsp->fsnumber = fsnumber;
+    }
+
+    dprintf("FS number is %i\n", fsp->fsnumber);
+    dprintf("FS name is '%s'\n", fsp->fsname);
+
+    return fsp;
+}
+
+/*******************************************************************
+ Function:      fsparams_destroy
+ Description:   Destroy the FSParameters block.
+ Parameters:    fsp-> the parameters to destroy
+ Returns:       none
+ ******************************************************************/
+void fsparams_destroy(fsparameters_t *fsp)
+{
+    if (fsp != NULL)
+        free(fsp);
+}

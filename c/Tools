@@ -1,0 +1,163 @@
+/*******************************************************************
+ * File:        Tools
+ * Purpose:     Managing the tools which operate on discs.
+ * Date:        03 Jan 2022
+ ******************************************************************/
+
+#include <stdlib.h>
+#include <stdio.h>
+#include "Tools.h"
+
+static char command[1024];
+
+static const char *tooloperation_names[3] = {
+        "Format",
+        "Verify",
+        "Check"
+    };
+static const char *tooldisctype_names[3] = {
+        "Floppy",
+        "Hard",
+    };
+
+#define FORM_MAX (2)
+
+/* Define this to debug this file */
+/* #define DEBUG */
+
+
+#ifdef DEBUG
+#define dprintf if (1) printf
+#else
+#define dprintf if (0) printf
+#endif
+
+
+/*******************************************************************
+ Function:      build_tool_variable
+ Description:   Build a variable name which should be used to invoke
+                an external tool
+ Parameters:    tooloperation = operation to perform, eg to_format
+                tooldisctype = whether this is a tdt_floppy or tdt_hard,
+                               as that decides how the device formats
+                driver-> the name of the driver, eg ADFS
+                device = the device number
+                form = the form of the command, which should increment
+                       from 0 on each attempt
+ Returns:       a readonly string that should be used as the command
+                to run, or NULL if invalid parameters supplied or there
+                is no valid format.
+ ******************************************************************/
+const char *build_tool_variable(tooloperation_t   tooloperation,
+                                tooldisctype_t    tooldisctype,
+                                const char       *driver,
+                                bool              is_cli,
+                                int               device,
+                                int               form)
+{
+    static char varname[128];
+    if (tooloperation >= to__max)
+        return NULL;
+    if (tooldisctype >= tdt__max)
+        return NULL;
+    if (driver == NULL)
+        return NULL;
+    if (device > 7)
+        return NULL; /* Strictly only true for FileCore style discs */
+
+    /* Although device is not used, we pass all the parameters to the function to
+       allow the implementation of the variables to be changed without changing
+       the calling code. */
+
+    switch (form)
+    {
+        case 0:
+            sprintf(varname, "Alias$@FS%s%s_%s_%s", tooloperation_names[tooloperation],
+                                                    is_cli ? "CLI" : "",
+                                                    tooldisctype_names[tooldisctype],
+                                                    driver);
+            break;
+
+        case 1:
+            sprintf(varname, "Alias$@FS%s%s_%s", tooloperation_names[tooloperation],
+                                                 is_cli ? "CLI" : "",
+                                                 tooldisctype_names[tooldisctype]);
+            break;
+
+        default:
+            return NULL;
+    }
+
+    dprintf("Tool variable: %s\n", varname);
+
+    return varname;
+}
+
+
+/*******************************************************************
+ Function:      build_tool_command
+ Description:   Build a command which can be used to invoke the
+                tools
+ Parameters:    tooloperation = operation to perform, eg to_format
+                tooldisctype = whether this is a tdt_floppy or tdt_hard,
+                               as that decides how the device formats
+                driver-> the name of the driver, eg ADFS
+                device = the device number
+ Returns:       pointer to a read only string that may be used to
+                invoke the tool, or NULL if no tool could be found.
+ ******************************************************************/
+const char *build_tool_command(tooloperation_t   tooloperation,
+                               tooldisctype_t    tooldisctype,
+                               const char       *driver,
+                               bool              is_cli,
+                               int               device)
+{
+    int form;
+    const char *varname;
+    const char *varval;
+
+    dprintf("Building tool command for op %i, type %i, driver %p, CLI=%i, device %i\n",
+            tooloperation,
+            tooldisctype,
+            driver,
+            is_cli,
+            device,
+            form);
+
+    /* Try each form until we find one that is set, or there are none */
+    for (form = 0; form < FORM_MAX; form++)
+    {
+        varname = build_tool_variable(tooloperation,
+                                      tooldisctype,
+                                      driver,
+                                      is_cli,
+                                      device,
+                                      form);
+        if (varname == NULL)
+        {
+            dprintf("Variable not available for form %i\n", form);
+            continue;
+        }
+        varval = getenv(varname);
+        if (varval != NULL)
+            break;
+    }
+
+    if (varval == NULL)
+    {
+        /* No suitable configuration found; we cannot do anything */
+        return NULL;
+    }
+    sprintf(command,
+            "%s -op %s -type %s %s -driver %s -device %i",
+            varval,
+            tooloperation_names[tooloperation],
+            tooldisctype_names[tooldisctype],
+            is_cli ? "-cli" : "",
+            driver,
+            device);
+
+    dprintf("Tool command: %s\n", command);
+
+    return command;
+}

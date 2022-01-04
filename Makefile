@@ -5,7 +5,9 @@ OBJS        = FilerX \
 			  Main \
 			  Enter \
 			  FindDrives \
-			  Icon
+			  Icon \
+			  Tools \
+			  FSParameters
 CMHGDEPENDS = FilerX
 CUSTOMRES   = no
 

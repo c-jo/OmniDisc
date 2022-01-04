@@ -1,37 +1,42 @@
 #ifndef FILERX_H
 #define FILERX_H
 
-#ifdef NO_STDBOOL
-#ifndef BOOL_DEFINED
-#define BOOL_DEFINED
-typedef enum {false, true} bool;
-#endif
-#else
-#include <stdbool.h>
-#endif
+#include "bool.h"
 #include "Wimp.h"
 
 #include "Icon.h"
-
+#include "Tools.h"
+#include "FSParameters.h"
 
 #define UNUSED(x) (void)x
 
 char *strdup(const char *src);
 
 extern unsigned task_handle;
-
 extern unsigned pollword;
+extern bool     sharefs;
 
 #define Pollword_FS    0x01
 #define Pollword_Drive 0x02
 #define Pollword_Icon  0x04
 
+typedef enum
+{
+    ShareUnknown     =-1,
+    NotShared        = 0,
+    ShareProtected   = 1,
+    ShareUnprotected = 2
+} ShareType;
+
 typedef struct
 {
-    unsigned    flags;
+    int         is_removeable:1;    /* Is a dynamic disc */
+    int         is_ejectable:1;     /* Has power eject */
+    int         is_floppy:1;        /* Uses floppy semantics for mounting and formatting */
     char        discname[12];
     const char *validation;
     int         baricon;
+    ShareType   share;
 } Drive;
 
 #define DriveFlags_Present 1
@@ -39,8 +44,8 @@ typedef struct
 
 typedef struct FS_s
 {
-    char      module[12];
-    char      name[8];
+    fsparameters_t *fsparams;
+
     bool      fd_names;
     unsigned  posiion;
     Drive     drive[8];
@@ -51,5 +56,39 @@ typedef struct FS_s
 extern FS *fses;
 
 extern Icon *icons;
+
+
+/*******************************************************************
+ Function:      fsdrive_tool_capable
+ Description:   Check if we can invoke the external tools for this drive
+ Parameters:    fs-> the FS to invoke on
+                drive = the drive number
+                tooloperation = the operation to perform
+ Returns:       true if we can use this tool, false if we cannot
+ ******************************************************************/
+bool fsdrive_tool_capable(FS *fs, int drive,
+                          tooloperation_t tooloperation);
+
+/*******************************************************************
+ Function:      fsdrive_tool_invoke
+ Description:   Invoke one of the external tools.
+ Parameters:    fs-> the FS to invoke on
+                drive = the drive number
+                tooloperation = the operation to perform
+ Returns:       pointer to error, or NULL if successful
+ ******************************************************************/
+_kernel_oserror *fsdrive_tool_invoke(FS *fs, int drive,
+                                     tooloperation_t tooloperation);
+
+/*******************************************************************
+ Function:      fsdrive_share
+ Description:   Share (or unshare) a drive.
+ Parameters:    fs-> the FS to invoke on
+                drive = the drive number
+                sharetype = How to share
+ Returns:       pointer to error, or NULL if successful
+ ******************************************************************/
+_kernel_oserror *fsdrive_share(FS *fs, int drive,
+                               ShareType sharetype);
 
 #endif
