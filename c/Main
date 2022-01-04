@@ -482,6 +482,7 @@ static void menu_selection(WimpMenuSelectionEvent *event)
 
         if (pointer_info.button_state & Wimp_MouseButtonAdjust)
         {
+            menu_update(menu_drive.fs, menu_drive.drive);
             _swi(Wimp_CreateMenu, _INR(1,3),
                      &drive_menu, menu_drive.x, menu_drive.y);
 
