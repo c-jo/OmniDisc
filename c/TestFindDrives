@@ -13,10 +13,13 @@
 /**
  * Simple call which reports found drives.
  */
-void got_drive(void *private, int drive, const char *name, bool is_removeable)
+void got_drive(void *private, int drive, const char *name,
+               bool is_removeable, bool is_ejectable, bool is_floppy)
 {
-    printf("Found a drive %i (%s): %s\n", drive,
+    printf("Found a drive %i (%s): %s, %s, %s\n", drive,
                                           is_removeable ? "removeable" : "fixed",
+                                          is_ejectable ? "ejectable" : "no-eject",
+                                          is_floppy ? "mount-floppy" : "mount-harddisc",
                                           name ? name : "<NULL>");
 }
 
@@ -34,13 +37,22 @@ int main(int argc, char *argv[])
     for (fs_ptr = filing_systems; *fs_ptr; fs_ptr++)
     {
         char *fs = *fs_ptr;
+        fsparameters_t *fsp;
         printf("Scanning %s\n", fs);
-        find_filecore_module_drives(fs,
-                                    (FFMD_REPORT_REMOVABLE
-                                        | FFMD_REPORT_FIXED
-                                        | FFMD_NAME_REMOVABLE
-                                        | FFMD_NAME_FIXED),
-                                    got_drive, NULL);
+        fsp = fsparams_create(fs);
+        if (fsp == NULL)
+        {
+            printf("  No filing system detected\n");
+        }
+        else
+        {
+            find_filecore_module_drives(fsp,
+                                        (FFMD_REPORT_REMOVABLE
+                                            | FFMD_REPORT_FIXED
+                                            | FFMD_NAME_REMOVABLE
+                                            | FFMD_NAME_FIXED),
+                                        got_drive, NULL);
+        }
     }
 
     return 0;

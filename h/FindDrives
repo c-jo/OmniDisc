@@ -5,14 +5,8 @@
 #ifndef FINDDRIVES_H
 #define FINDDRIVES_H
 
-#ifdef NO_STDBOOL
-#ifndef BOOL_DEFINED
-#define BOOL_DEFINED
-typedef enum {false, true} bool;
-#endif
-#else
-#include <stdbool.h>
-#endif
+#include "bool.h"
+#include "FSParameters.h"
 
 /* Flags for what drives will be examined and data returned */
 #define FFMD_REPORT_REMOVABLE   (1<<0)
@@ -20,21 +14,28 @@ typedef enum {false, true} bool;
 #define FFMD_NAME_REMOVABLE     (1<<2)
 #define FFMD_NAME_FIXED         (1<<3)
 
+/* is_removeable means that the disc is to be treated as a device that can change dynamically.
+ * is_ejectable means that the disc can be ejected.
+ * is_floppy means that the disc should be mounted (and formatted) as a floppy.
+ */
 typedef void (*found_filecore_drive_f)(void *private,
                                        int drive_number,
                                        const char *name,
-                                       bool is_removeable);
+                                       bool is_removeable,
+                                       bool is_ejectable,
+                                       bool is_floppy);
 
 /*******************************************************************
  Function:      find_filecore_module_drives
  Description:   Find which FileCore drives are available for a given FS.
- Parameters:    modname-> module name, used for looking up SWI names
+ Parameters:    fsparams-> the fsparameters_t structure which describes
+                    the FS we are accessing
                 ffmd_flags = FFMD_* flags to finding discs
                 drive_callback -> function to call with the drive numbers
                 private-> the private value to pass to callback function
  Returns:       none
  ******************************************************************/
-void find_filecore_module_drives(const char *modname,
+void find_filecore_module_drives(fsparameters_t *fsparams,
                                  unsigned long ffmd_flags,
                                  found_filecore_drive_f drive_callback,
                                  void *private);

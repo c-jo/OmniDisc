@@ -1,4 +1,5 @@
 #include "FilerX.h"
+#include "Tools.h"
 #include "swis.h"
 
 #include <stdlib.h>
@@ -11,15 +12,37 @@
 
 #include "ShareFS.h"
 
+/* Define this to add in the support for checking discs */
+#define SUPPORT_CHECK
+/* Define this to add in the support for ejecting discs */
+#define SUPPORT_EJECT
+
 static char *share_styles[] =
     { "Not shared", "Share protected", "Share unprotected" };
 
 static unsigned tray_window = 0;
 
+enum menuitems_e {
+    menuitem_namedisc,
+    menuitem_dismount,
+#ifdef SUPPORT_EJECT
+    menuitem_eject,
+#endif
+    menuitem_format,
+    menuitem_backup,
+    menuitem_share,
+    menuitem_verify,
+#ifdef SUPPORT_CHECK
+    menuitem_check,
+#endif
+    menuitem_free,
+    menuitem_LAST
+};
+
 static struct drive_menu_s
 {
     WimpMenu menu;
-    WimpMenuItem more[5];
+    WimpMenuItem more[9];
 } drive_menu;
 
 static WimpMenuItem *share_item = 0;
@@ -91,15 +114,30 @@ static void make_menus(void)
     make_menu(menu, "xxFS::x");
 
     items = menu->items;
-    make_item(&items[0], "Name disc", &name_menu,   false);
-    make_item(&items[1], "Dismount",   NULL,        false);
-//    make_item(&items[2], "Format",     NULL,        true );
-    make_item(&items[2], "Backup...",  NULL,        true );
-    make_item(&items[3], "Share",     &share_menu,  false);
-    make_item(&items[4], "Verify...",  NULL,        true );
-    make_item(&items[5], "Free...",    NULL,        false);
-    items[5].flags |= WimpMenuItem_Last;
-    share_item = &items[3];
+    make_item(&items[menuitem_namedisc], "Name disc", &name_menu,   false);
+    make_item(&items[menuitem_dismount], "Dismount",   NULL,        false);
+#ifdef SUPPORT_EJECT
+    make_item(&items[menuitem_eject],    "Eject",     NULL,         true );
+#endif
+    make_item(&items[menuitem_format], "Format...",  NULL,        true );
+    make_item(&items[menuitem_backup], "Backup...",  NULL,        true );
+    make_item(&items[menuitem_share], "Share",     &share_menu,  false);
+    make_item(&items[menuitem_verify], "Verify...",  NULL,        true );
+#ifdef SUPPORT_CHECK
+    make_item(&items[menuitem_check], "Check...",  NULL,        true );
+#endif
+    make_item(&items[menuitem_free], "Free...",    NULL,        false);
+    items[menuitem_LAST - 1].flags |= WimpMenuItem_Last;
+}
+
+static void menu_shade(WimpMenu *menu, int item, bool shaded)
+{
+    WimpMenuItem *items = menu->items;
+
+    if (shaded)
+        items[item].flags = items[item].flags | WimpIcon_Shaded;
+    else
+        items[item].flags = items[item].flags & ~WimpIcon_Shaded;
 }
 
 static void get_icon_size(const char *icon, unsigned *x, unsigned *y)
@@ -183,6 +221,45 @@ static void clear_icons(void)
     }
 }
 
+/*************************************************** Gerph *********
+ Function:      menu_update
+ Description:   Update the menu to reflect the selected FS and drive
+ Parameters:    fs-> the FS we're operating on
+                drive = the drive that's been selected
+ Returns:       none
+ ******************************************************************/
+static void menu_update(FS *fs, int drive)
+{
+    sprintf(drive_menu.menu.title, "%s::%d", fs->fsparams->fsname, drive);
+
+    /* Decide which operations are available by looking at the commands
+       that can be performed. */
+
+    printf("Attempting shading for %s, %i\n", fs->fsparams->fsname, drive);
+#ifdef SUPPORT_EJECT
+    menu_shade(&drive_menu.menu, menuitem_format,
+               (bool)! fs->drive[drive].is_ejectable);
+#endif
+    printf("Format shading\n");
+
+    /* Format */
+    menu_shade(&drive_menu.menu, menuitem_format,
+               (bool)! fsdrive_tool_capable(fs, menu_drive.drive, to_format));
+
+#ifdef SUPPORT_CHECK
+    /* Check */
+    menu_shade(&drive_menu.menu, menuitem_check,
+               (bool)! fsdrive_tool_capable(fs, menu_drive.drive, to_check));
+#endif
+
+    /* Verify */
+    menu_shade(&drive_menu.menu, menuitem_verify,
+               (bool)! fsdrive_tool_capable(fs, menu_drive.drive, to_verify));
+
+    menu_drive.fs    = fs;
+    menu_drive.drive = drive;
+}
+
 static void mouse_click(WimpMouseClickEvent *event)
 {
     FS *fs = NULL;
@@ -213,10 +290,10 @@ static void mouse_click(WimpMouseClickEvent *event)
         char cmd[48];
         if (fs->drive[drive].discname[0] == ':')
             sprintf(cmd, "%%Filer_OpenDir %s:%s.$",
-                         fs->name, fs->drive[drive].discname);
+                         fs->fsparams->fsname, fs->drive[drive].discname);
         else
             sprintf(cmd, "%%Filer_OpenDir %s::%s.$",
-                         fs->name, fs->drive[drive].discname);
+                         fs->fsparams->fsname, fs->drive[drive].discname);
 
         _swix(OS_CLI, _IN(0), cmd);
     }
@@ -229,8 +306,9 @@ static void mouse_click(WimpMouseClickEvent *event)
         if (event->window_handle == -2)
         {
             x -= 0x40;
-            y  = 96+44*6;
+            y  = 96+44 * menuitem_LAST;
         }
+<<<<<<< HEAD
         sprintf(drive_menu.menu.title, "%s::%d", fs->name, drive);
 
         if (sharefs)
@@ -250,9 +328,8 @@ static void mouse_click(WimpMouseClickEvent *event)
         else
             share_item->icon_flags |=  WimpIcon_Shaded;
 
+        menu_update(fs, drive);
         _swi(Wimp_CreateMenu, _INR(1,3), &drive_menu, x, y);
-        menu_drive.fs    = fs;
-        menu_drive.drive = drive;
     }
 }
 
@@ -261,18 +338,19 @@ static void menu_selection(WimpMenuSelectionEvent *event)
     _kernel_oserror *e = 0;
     if (menu_drive.fs != NULL && menu_drive.drive != -1)
     {
-        switch ((*event)[0])
+        int menuitem = (*event)[0];
+        switch (menuitem)
         {
-        case 0: // Name Disc
+        case menuitem_namedisc:
             if (event[1] == 0)
             {
                 _swi(Wimp_ReportError, _INR(0,2), "0000Name", 1, 0);
             }
             break;
-        case 1: // Dismount
+        case menuitem_dismount:
             _swi(Wimp_ReportError, _INR(0,2), "0000Dismount", 1, 0);
             break;
-        case 3: // Share
+        case menuitem_share:
         {
             char path[32];
             Drive *drv =&(menu_drive.fs->drive[menu_drive.drive]);
@@ -302,17 +380,43 @@ static void menu_selection(WimpMenuSelectionEvent *event)
             }
             break;
         }
-        case 4: // Verify
+#ifdef SUPPORT_EJECT
+        case menuitem_eject:
+            _swi(Wimp_ReportError, _INR(0,2), "0000Eject", 1, 0);
             break;
-        case 5: // Free
-        {
-            char cmd[32];
-            sprintf(cmd, "%%ShowFree -FS %s %d",
-                         menu_drive.fs->name, menu_drive.drive);
-            e = _swix(OS_CLI, _IN(0), &cmd);
+#endif
+        case menuitem_backup:
             break;
-        }
 
+        case menuitem_format:
+#ifdef SUPPORT_CHECK
+        case menuitem_check:
+#endif
+        case menuitem_verify:
+            {
+                tooloperation_t tooloperation;
+                _kernel_oserror *err;
+
+                if (menuitem == menuitem_format)
+                    tooloperation = to_format;
+                else if (menuitem == menuitem_check)
+                    tooloperation = to_check;
+                else /* Always default to verify */
+                    tooloperation = to_verify;
+
+                err = fsdrive_tool_invoke(menu_drive.fs, menu_drive.drive,
+                                          tooloperation);
+                if (err)
+                    _swi(Wimp_ReportError, _INR(0,2), err, 1, 0);
+            }
+            break;
+
+        case menuitem_free: // Free
+            {
+                char cmd[64];
+                sprintf(cmd, "%%ShowFree -FS %s %d",
+                             menu_drive.fs->fsparams->fsname, menu_drive.drive);
+                _swix(OS_CLI, _IN(0), &cmd);
         }
         menu_drive.fs = 0;
         menu_drive.drive = -1;

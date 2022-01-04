@@ -42,6 +42,8 @@ OBJS       = \
              o.Main \
              o.FindDrives \
              o.Icon \
+             o.Tools \
+             o.FSParameters \
 
 FORTIFY   ?= no
 

@@ -1,0 +1,179 @@
+/**
+ * Simple test code that exercises the Tools command building, etc.
+ *
+ * Largely for manual testing.
+ */
+
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+
+#include "Tools.h"
+
+struct var_expect {
+    tooloperation_t   tooloperation;
+    tooldisctype_t    tooldisctype;
+    const char       *driver;
+    bool              is_cli;
+    int               device;
+
+    const char       *expected[2];
+};
+
+struct var_expect var_expectations[] = {
+    /* Harddisc / Floppy disc */
+    {
+        to_format, tdt_floppy, "ADFS", false, 0,
+        {
+            "Alias$@FSFormat_Floppy_ADFS",
+            "Alias$@FSFormat_Floppy"
+        }
+    },
+
+    {
+        to_format, tdt_floppy, "ADFS", false, 1,
+        {
+            "Alias$@FSFormat_Floppy_ADFS",
+            "Alias$@FSFormat_Floppy"
+        }
+    },
+
+    {
+        to_format, tdt_hard, "ADFS", false, 4,
+        {
+            "Alias$@FSFormat_Hard_ADFS",
+            "Alias$@FSFormat_Hard"
+        }
+    },
+
+    /* Different operations */
+    {
+        to_verify, tdt_hard, "ADFS", false, 4,
+        {
+            "Alias$@FSVerify_Hard_ADFS",
+            "Alias$@FSVerify_Hard"
+        }
+    },
+
+    {
+        to_check, tdt_hard, "ADFS", false, 4,
+        {
+            "Alias$@FSCheck_Hard_ADFS",
+            "Alias$@FSCheck_Hard"
+        }
+    },
+
+    /* Different drivers */
+    {
+        to_verify, tdt_hard, "SCSIFS", false, 4,
+        {
+            "Alias$@FSVerify_Hard_SCSIFS",
+            "Alias$@FSVerify_Hard"
+        }
+    },
+
+    /* CLI invocation */
+    {
+        to_format, tdt_hard, "ADFS", true, 4,
+        {
+            "Alias$@FSFormatCLI_Hard_ADFS",
+            "Alias$@FSFormatCLI_Hard"
+        }
+    },
+
+    /* Negative tests for invalid values */
+    {
+        (tooloperation_t)5, tdt_hard, "ADFS", false, 4,
+        {
+            NULL,
+            NULL
+        }
+    },
+
+    {
+        to_format, (tooldisctype_t)3, "ADFS", false, 4,
+        {
+            NULL,
+            NULL
+        }
+    },
+
+    {
+        to_format, tdt_hard, NULL, false, 4,
+        {
+            NULL,
+            NULL
+        }
+    },
+
+    {
+        to_format, tdt_hard, "ADFS", false, 8,
+        {
+            NULL,
+            NULL
+        }
+    },
+};
+#define MAX_VARIABLE_TEST (sizeof(var_expectations) / sizeof(var_expectations[0]))
+#define MAX_FORM (2)
+
+void test_variable(void)
+{
+    int testnumber;
+    bool fail = false;
+    for (testnumber=0; testnumber < MAX_VARIABLE_TEST; testnumber++)
+    {
+        struct var_expect *expect = &var_expectations[testnumber];
+        int form;
+
+        printf("Test %i: Op=%i, DiscType=%i, driver=%s, cli=%i, device=%i:\n",
+               testnumber,
+               expect->tooloperation,
+               expect->tooldisctype,
+               expect->driver ? expect->driver : "<NULL>",
+               expect->is_cli,
+               expect->device);
+
+        for (form=0; form<MAX_FORM; form++)
+        {
+            const char *varname;
+            const char *varname_expected = expect->expected[form];
+            bool ok = false;
+
+            printf("  Form %i: ", form);
+            varname = build_tool_variable(expect->tooloperation,
+                                          expect->tooldisctype,
+                                          expect->driver,
+                                          expect->is_cli,
+                                          expect->device,
+                                          form);
+            if (varname == NULL && varname_expected == NULL)
+                ok = true;
+            else if (varname != NULL &&
+                     varname_expected != NULL &&
+                     strcmp(varname, varname_expected) == 0)
+                ok = true;
+
+            if (ok)
+            {
+                printf("OK\n");
+            }
+            else
+            {
+                printf("FAIL: got '%s', expected '%s'\n", varname ? varname : "<NULL>",
+                                                          varname_expected ? varname_expected : "<NULL>");
+                fail = true;
+            }
+        }
+    }
+
+    if (fail)
+        exit(1);
+}
+
+
+int main(int argc, char *argv[])
+{
+    test_variable();
+    return 0;
+}
