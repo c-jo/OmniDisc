@@ -25,7 +25,7 @@ FS *fses = 0;
 static void init_fs(FS *fs, const char *name)
 {
     int n;
-    strcpy(fs->fsparams->name, name);
+    fs->fsparams = NULL;
     fs->next = 0;
 
     for (n=0; n < 8; ++n)
