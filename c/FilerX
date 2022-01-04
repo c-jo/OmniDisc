@@ -333,7 +333,7 @@ _kernel_oserror *module_finalise(int fatal, int podule_base, void *pw)
     {
         FS *x = fs;
         fs = fs->next;
-        fsparams_destroy(fs->fsparams);
+        fsparams_destroy(x->fsparams);
         free(x);
     }
 
