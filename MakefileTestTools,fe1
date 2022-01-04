@@ -1,13 +1,11 @@
 #!/usr/bin/env riscos-amu -f
-# Makefile for testfinddrives
+# Makefile for testtools
 #
-
-VPATH = @ ^.
 
 #
 # Program specific options:
 #
-COMPONENT  = testfinddrives
+COMPONENT  = testtools
 
 # Specifies additional targets for startup
 #INITTARGET = inittarget
@@ -26,7 +24,7 @@ TYPE       = aif
 
 # Comma-separated list of paths to use for includes, such as:
 #	<Lib$Dir>.LibName.
-INCLUDES   = ^.
+INCLUDES   =
 
 # Space separated list of defines to set, eg -DDEBUG
 CDEFINES   = -DNO_STDBOOL
@@ -35,9 +33,8 @@ CDEFINES   = -DNO_STDBOOL
 LIBS       = ${CLIB}
 
 # Objects to build, using the format o.<name> (will be varied for build type)
-OBJS       = o.FindDrives \
-             o.TestFindDrives \
-             o.FSParameters
+OBJS       = o.Tools \
+             o.TestTools \
 
 # Space separated list of XML files for building documentation.
 #DOCSRC = <prm-in-xml-sources>

@@ -1,0 +1,68 @@
+/*******************************************************************
+ * File:        Tools
+ * Purpose:     Managing the tools which operate on discs.
+ * Date:        03 Jan 2022
+ ******************************************************************/
+
+#ifndef TOOLS_H
+#define TOOLS_H
+
+#include "bool.h"
+
+typedef enum {
+    to_format,
+    to_verify,
+    to_check,
+    to__max
+} tooloperation_t;
+
+typedef enum {
+    tdt_floppy = 0,
+    tdt_hard = 1,
+    tdt__max
+} tooldisctype_t;
+
+
+/*******************************************************************
+ Function:      build_tool_variable
+ Description:   Build a variable name which should be used to invoke
+                an external tool
+ Parameters:    tooloperation = operation to perform, eg to_format
+                tooldisctype = whether this is a tdt_floppy or tdt_hard,
+                               as that decides how the device formats
+                driver-> the name of the driver, eg ADFS
+                device = the device number
+                form = the form of the command, which should increment
+                       from 0 on each attempt
+ Returns:       a readonly string that should be used as the command
+                to run, or NULL if invalid parameters supplied or there
+                is no valid format.
+ ******************************************************************/
+const char *build_tool_variable(tooloperation_t   tooloperation,
+                                tooldisctype_t    tooldisctype,
+                                const char       *driver,
+                                bool              is_cli,
+                                int               device,
+                                int               form);
+
+
+/******************************************************************
+ Function:      build_tool_command
+ Description:   Build a command which can be used to invoke the
+                tools
+ Parameters:    tooloperation = operation to perform, eg to_format
+                tooldisctype = whether this is a tdt_floppy or tdt_hard,
+                               as that decides how the device formats
+                driver-> the name of the driver, eg ADFS
+                device = the device number
+ Returns:       pointer to a read only string that may be used to
+                invoke the tool, or NULL if no tool could be found.
+ ******************************************************************/
+const char *build_tool_command(tooloperation_t   tooloperation,
+                               tooldisctype_t    tooldisctype,
+                               const char       *driver,
+                               bool              is_cli,
+                               int               device);
+
+
+#endif

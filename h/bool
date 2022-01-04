@@ -1,0 +1,19 @@
+/*******************************************************************
+ * File:        bool
+ * Purpose:     Booleans for C99, and C89
+ * Date:        03 Jan 2022
+ ******************************************************************/
+
+#ifndef BOOL_H
+#define BOOL_H
+
+#ifdef NO_STDBOOL
+#ifndef BOOL_DEFINED
+#define BOOL_DEFINED
+typedef enum {false, true} bool;
+#endif
+#else
+#include <stdbool.h>
+#endif
+
+#endif

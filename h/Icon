@@ -1,14 +1,7 @@
 #ifndef ICON_H
 #define ICON_H
 
-#ifdef NO_STDBOOL
-#ifndef BOOL_DEFINED
-#define BOOL_DEFINED
-typedef enum {false, true} bool;
-#endif
-#else
-#include <stdbool.h>
-#endif
+#include "bool.h"
 
 #include "kernel.h"
 
