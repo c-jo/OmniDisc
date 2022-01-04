@@ -10,6 +10,8 @@
 #include "fortify.h"
 #endif
 
+#include "ShareFS.h"
+
 /* Define this to add in the support for checking discs */
 #define SUPPORT_CHECK
 /* Define this to add in the support for ejecting discs */
@@ -43,11 +45,13 @@ static struct drive_menu_s
     WimpMenuItem more[9];
 } drive_menu;
 
+static WimpMenuItem *share_item = 0;
+
 static struct
 {
     FS      *fs;
     unsigned drive;
-} menu_drive = { 0, -0 };
+} menu_drive = { 0, 0 };
 
 static WimpMenu name_menu;
 
@@ -58,6 +62,7 @@ static struct share_menu_s
     WimpMenu menu;
     WimpMenuItem more[2];
 } share_menu;
+
 
 static void make_menu(WimpMenu *menu, const char *title)
 {
@@ -95,21 +100,20 @@ static void make_menus(void)
 {
     WimpMenu *menu = (WimpMenu*)&share_menu;
     WimpMenuItem *items = menu->items;
-    make_menu(&name_menu, "Disc name");
-    make_item_indir(&name_menu.items[0], new_name, "A~$&%@\\^:.#*\x22| ", 11);
-    name_menu.items[0].flags |=  WimpMenuItem_Writable | WimpMenuItem_Last;
-
     make_menu(menu, "Share style");
     make_item_indir(&items[0], share_styles[0], "", 0);
     make_item_indir(&items[1], share_styles[1], "", 0);
     make_item_indir(&items[2], share_styles[2], "", 0);
     items[2].flags |= WimpMenuItem_Last;
 
+    make_menu(&name_menu, "Disc name");
+    make_item_indir(&name_menu.items[0], new_name, "A~$&%@\\^:.#*\x22| ", 11);
+    name_menu.items[0].flags |=  WimpMenuItem_Writable | WimpMenuItem_Last;
+
     menu = (WimpMenu*)&drive_menu;
     make_menu(menu, "xxFS::x");
 
     items = menu->items;
-
     make_item(&items[menuitem_namedisc], "Name disc", &name_menu,   false);
     make_item(&items[menuitem_dismount], "Dismount",   NULL,        false);
 #ifdef SUPPORT_EJECT
@@ -302,8 +306,27 @@ static void mouse_click(WimpMouseClickEvent *event)
         if (event->window_handle == -2)
         {
             x -= 0x40;
-            y  = 96+44 * menuitem_LAST;
+            y  = 96 + 44*menuitem_LAST;
         }
+        sprintf(drive_menu.menu.title, "%s::%d", fs->fsparams->name, drive);
+
+        if (sharefs)
+        {
+            WimpMenuItem *items = ((WimpMenu*)&share_menu)->items;
+            int n;
+
+            for (n=0; n<=2; ++n)
+            {
+                 if (fs->drive[drive].share == n)
+                     items[n].flags |=  WimpMenuItem_Ticked;
+                 else
+                     items[n].flags &= ~WimpMenuItem_Ticked;
+            }
+            share_item->icon_flags &= ~WimpIcon_Shaded;
+        }
+        else
+            share_item->icon_flags |=  WimpIcon_Shaded;
+
         menu_update(fs, drive);
         _swi(Wimp_CreateMenu, _INR(1,3), &drive_menu, x, y);
     }
@@ -311,27 +334,34 @@ static void mouse_click(WimpMouseClickEvent *event)
 
 static void menu_selection(WimpMenuSelectionEvent *event)
 {
+    _kernel_oserror *e = 0;
     if (menu_drive.fs != NULL && menu_drive.drive != -1)
     {
-        int menuitem = *event[0];
+        int menuitem = (*event)[0];
         switch (menuitem)
         {
         case menuitem_namedisc:
             if (event[1] == 0)
             {
-                _swi(Wimp_ReportError, _INR(0,2), "0000Dismount", 1, 0);
+                _swi(Wimp_ReportError, _INR(0,2), "0000Name", 1, 0);
             }
             break;
         case menuitem_dismount:
             _swi(Wimp_ReportError, _INR(0,2), "0000Dismount", 1, 0);
             break;
-
+        case menuitem_share:
+        {
+            _kernel_oserror *err;
+            ShareType sharetype = (ShareType)((*event)[1]);
+            err = fsdrive_share(menu_drive.fs, menu_drive.drive, sharetype);
+            if (err) _swix(Wimp_ReportError, _INR(0,2), err, 1, 0);
+            break;
+        }
 #ifdef SUPPORT_EJECT
         case menuitem_eject:
             _swi(Wimp_ReportError, _INR(0,2), "0000Eject", 1, 0);
             break;
 #endif
-
         case menuitem_backup:
             break;
 
@@ -364,7 +394,6 @@ static void menu_selection(WimpMenuSelectionEvent *event)
                 sprintf(cmd, "%%ShowFree -FS %s %d",
                              menu_drive.fs->fsparams->fsname, menu_drive.drive);
                 _swix(OS_CLI, _IN(0), &cmd);
-
             }
         }
         menu_drive.fs = 0;

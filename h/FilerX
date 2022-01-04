@@ -13,12 +13,20 @@
 char *strdup(const char *src);
 
 extern unsigned task_handle;
-
 extern unsigned pollword;
+extern bool     sharefs;
 
 #define Pollword_FS    0x01
 #define Pollword_Drive 0x02
 #define Pollword_Icon  0x04
+
+typedef enum
+{
+    ShareUnknown     =-1,
+    NotShared        = 0,
+    ShareProtected   = 1,
+    ShareUnprotected = 2
+} ShareType;
 
 typedef struct
 {
@@ -28,6 +36,7 @@ typedef struct
     char        discname[12];
     const char *validation;
     int         baricon;
+    ShareType   share;
 } Drive;
 
 #define DriveFlags_Present 1
@@ -70,5 +79,16 @@ bool fsdrive_tool_capable(FS *fs, int drive,
  ******************************************************************/
 _kernel_oserror *fsdrive_tool_invoke(FS *fs, int drive,
                                      tooloperation_t tooloperation);
+
+/*******************************************************************
+ Function:      fsdrive_share
+ Description:   Share (or unshare) a drive.
+ Parameters:    fs-> the FS to invoke on
+                drive = the drive number
+                sharetype = How to share
+ Returns:       pointer to error, or NULL if successful
+ ******************************************************************/
+_kernel_oserror *fsdrive_share(FS *fs, int drive,
+                               ShareType sharetype);
 
 #endif

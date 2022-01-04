@@ -1,0 +1,37 @@
+#ifndef SHAREFS_H
+#define SHAREFS_H
+
+/* SWIs */
+#define ShareFS_CreateShare 0x47ac0
+#define ShareFS_StopShare 0x47ac1
+#define ShareFS_EnumerateShares 0x47ac2
+#define ShareFS_IdentifyShare 0x47ac3
+
+/* ShareFS message details */
+#define Message_FileShareDir 0x408
+#define ShareFSMessageFileShareDirFlags_Protected (1<<0)
+#define ShareFSMessageFileShareDirFlags_ReadOnly (1<<1)
+#define ShareFSMessageFileShareDirFlags_Hidden (1<<2)
+#define ShareFSMessageFileShareDirFlags_Authenticated (1<<3)
+#define ShareFSMessageFileShareDirFlags_CDROM (1<<4)
+#define ShareFSMessageFileShareDirFlags_WindowPosGiven (1<<30)
+
+/* ShareFS_IdentifyShareFlags */
+#define ShareFS_IdentifyShareShareName (1<<0)
+#define ShareFS_IdentifyShareValidFlags (1<<0)
+
+/* ShareFS_ShareFlags */
+#define ShareFS_ShareProtected (1<<0)
+#define ShareFS_ShareReadOnly (1<<1)
+#define ShareFS_ShareHidden (1<<2)
+#define ShareFS_ShareSubdir (1<<3)
+#define ShareFS_ShareCDROM (1<<4)
+#define ShareFS_ShareAuth (1<<5)
+#define ShareFS_ShareValidFlags (1<<6) - 1
+
+/* Services */
+#define Service_ShareFSStarting 0x97
+#define Service_ShareFSDying 0x98
+#define Service_Sharing 0x801c8
+
+#endif
