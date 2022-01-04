@@ -220,25 +220,26 @@ _kernel_oserror *fsdrive_share(FS *fs, int drive,
                                ShareType sharetype)
 {
     _kernel_oserror *e = 0;
-    char *discname =fs->drive[drive].discnme;
+    char *discname = fs->drive[drive].discname;
     char path[32];
     sprintf(path, "%s::%s.$", fs->fsparams->name, discname);
 
-    if (drv->share != sharetype)
+    if (fs->drive[drive].share != sharetype)
     {
         switch (sharetype)
         {
         case NotShared:
             e = _swix(ShareFS_StopShare, _INR(0,1), 0,
-                          drv->discname);
+                          discname);
             break;
         case ShareProtected:
-            e = _swix(ShareFS_CreateShare, _INR(0,2), ShareFS_ShareProtected,
-                          drv->discname, path);
+            e = _swix(ShareFS_CreateShare, _INR(0,2), 
+                          ShareFS_ShareProtected,
+                          discname, path);
             break;
-        case ShareUnproteced:
+        case ShareUnprotected:
             e = _swix(ShareFS_CreateShare, _INR(0,2), 0,
-                          drv->discname, path);
+                          discname, path);
             break;
         }
         if (!e)
