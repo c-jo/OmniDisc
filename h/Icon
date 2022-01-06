@@ -14,12 +14,37 @@ typedef struct Icon_s {
     char val[14];  // Validitiy string (Siconname)
 
     struct Icon_s *next;
-    struct Icon_s *prev;
 } Icon;
 
 // cmd is of form
 // (-fs FS) (-disc Disc) icon  -f | -h | -delete
 _kernel_oserror *icon_command(Icon **icons, const char *cmd);
+
+/*******************************************************************
+ Function:      icon_add
+ Description:   Adds an icon for the given fs,disc and drive.
+ Parameters:    icons -> current head of the icons list
+                sprite-> the name of the sprite to use.
+                fs    -> the name of the filing system, or NULL
+                disc  -> the name of the disc, or NULL
+                drive  = the drive number, or -1
+ Returns:       pointer to the new head of the icon list.
+ ******************************************************************/
+Icon* icon_add(Icon* icons, const char *sprite,
+               const char *fs, const char *disc, int drive);
+
+/*******************************************************************
+ Function:      icon_remove
+ Description:   Removes an icon for the given fs,disc and drive.
+ Parameters:    icons -> current head of the icons list
+                fs    -> the name of the filing system, or NULL
+                disc  -> the name of the disc, or NULL
+                drive  = the drive number, or -1
+ Returns:       pointer to the new head of the icon list.
+ ******************************************************************/
+Icon* icon_remove(Icon*icons,
+                  const char *fs, const char *disc, int drive);
+
 
 // Returns a match value for the given icon with fs/disc/drive, -1 for no match
 // The higher the number the better the match.

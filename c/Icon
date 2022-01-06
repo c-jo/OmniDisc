@@ -29,13 +29,9 @@ _kernel_oserror *icon_command(Icon **icons, const char *cmd)
     if (ra_buf[43] == 0)
     {
         Icon *icon = malloc(sizeof(Icon));
-        icon->prev = 0;
         icon->next = *icons;
         icon->floppy = true;
         icon->winnie = true;
-
-        if (icon->next)
-            icon->next->prev = icon;
 
         strcpy(icon->fs,   ra_buf[0] ? (char*)ra_buf[0] : "");
         strcpy(icon->disc, ra_buf[1] ? (char*)ra_buf[1] : "");
@@ -60,6 +56,77 @@ _kernel_oserror *icon_command(Icon **icons, const char *cmd)
         // Delete
     }
     return 0;
+}
+/*******************************************************************
+ Function:      icon_add
+ Description:   Adds an icon for the given fs,disc and drive.
+ Parameters:    icons -> current head of the icons list
+                fs    -> the name of the filing system, or NULL
+                disc  -> the name of the disc, or NULL
+                drive  = the drive number, or -1
+                sprite-> the name of the sprite to use.
+ Returns:       pointer to the new head of the icon list.
+ ******************************************************************/
+Icon* icon_add(Icon* icons, const char *sprite,
+               const char *fs, const char *disc, int drive)
+{
+    Icon *last = icons;
+    while (last && last->next != NULL)
+        last = last->next;
+
+    Icon *newicon = malloc(sizeof(Icon));
+    newicon->val[0] = 'S';
+    strcpy(newicon->val+1, sprite);
+    strcpy(newicon->fs,    fs   ? fs   : "");
+    strcpy(newicon->disc,  disc ? disc : "");
+    newicon->drive = drive;
+    newicon->floppy = true;
+    newicon->winnie = true;
+    newicon->next   = 0;
+
+    if (last)
+        last->next = newicon;
+
+    return icons ? icons : newicon;
+}
+
+/*******************************************************************
+ Function:      icon_remove
+ Description:   Removes an icon for the given fs,disc and drive.
+ Parameters:    icons -> current head of the icons list
+                fs    -> the name of the filing system, or NULL
+                disc  -> the name of the disc, or NULL
+                drive  = the drive number, or -1
+ Returns:       pointer to the new head of the icon list.
+ ******************************************************************/
+Icon* icon_remove(Icon* icons,
+                  const char *fs, const char *disc, int drive)
+{
+    Icon *i = icons;
+    Icon *head = 0, *last = 0;
+
+    while (i)
+    {
+        bool remove =
+            (!stricmp(i->fs,  fs    ? fs   : "")) &&
+            (!stricmp(i->disc, disc ? disc : "")) &&
+            (i->drive == drive);
+
+        if (remove)
+        {
+            Icon *d = i;
+            if (last) last->next = i->next;
+            i = i->next;
+            free(d);
+        }
+        else
+        {
+            last = i;
+            if (!head) head = i;
+            i = i->next;
+        }
+    }
+    return head;
 }
 
 int icon_match(Icon* icon, const char *fs, int drive, const char *discname)
