@@ -25,21 +25,34 @@ jobs:
 
       # Build the tests
       - echo +++ Tests
+      - dir Test
       - amu -f MakefileTestFindDrives
       - amu -f MakefileTestIcons
+      - amu -f MakefileTestIconPos
+      - dir ^
       - amu -f MakefileTestTools
 
       # Run the tests (which should at least not crash)
+      - dir Test
       - echo + Test find drives
       - /aif32.TestFindDrives
       - echo + Test icon selection
       - /aif32.TestIcons
+      - echo + Test icon positioning
+      - /aif32.TestIconPos
+      - dir ^
       - echo + Test tool operations
       - /aif32.TestTools
 
       # Build the module
       - echo +++ Module
       - amu -f MakefileCJF ram
+
+      # Test that the module will load and die
+      - echo + Test module load/kill
+      - RMLoad rm32.FilerX
+      # We could do other runtime tests here
+      - RMKill FilerX
 
     # Outputs from the build are defined in artifacts
     # These are a list of artifacts to report directories or files.

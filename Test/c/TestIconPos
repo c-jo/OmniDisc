@@ -1,0 +1,77 @@
+#include "FilerX.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+void test_check(const char *name, unsigned line,
+                int pos_g, int pos_e, int icon_g, int icon_e)
+{
+   if (pos_g != pos_e) {
+        printf("%s (%d): pos got %d expected %d\n", name, line, pos_g, pos_e);
+        exit(1);
+   }
+    if (icon_g != icon_e) {
+        printf("%s (%d): icon got %d expected %d\n", name, line, icon_g, icon_e);
+        exit(1);
+   }
+   printf("%s (%d): OK\n", name, line);
+}
+
+#define TEST_CHECK(TN, P, I) test_check(TN, __LINE__,  pos, P, icon, I);
+
+FS *fses = 0;
+
+static void init_fs(FS *fs, const char *name)
+{
+    int n;
+    fs->fsparams = NULL;
+    fs->next = 0;
+
+    for (n=0; n < 8; ++n)
+    {
+        fs->drive[n].discname[0] = 0;
+        fs->drive[n].baricon = -1;
+    }
+}
+
+int main(void)
+{
+    int pos, icon;
+    FS adfs, scsi;
+
+    init_fs(&adfs, "ADFS");
+
+    fses = &adfs;
+    icon_position(&adfs.drive[4], &pos, &icon);
+    TEST_CHECK("First Icon", -5, 0x70000000);
+
+    adfs.drive[4].baricon = 1; // Icon for :4
+    icon_position(&adfs.drive[5], &pos, &icon);
+    TEST_CHECK("Icon to right", -4, 1);
+    adfs.drive[4].baricon = -1; // Reset icon
+
+    adfs.drive[5].baricon = 2; // Icon for :5
+    icon_position(&adfs.drive[4], &pos, &icon);
+    TEST_CHECK("Icon to left", -3, 2);
+    adfs.drive[5].baricon = -1; // Reset icon
+
+    // Add another FS
+    init_fs(&scsi, "SCSI");
+    adfs.next = &scsi;
+
+    adfs.drive[4].baricon = 14;
+    icon_position(&scsi.drive[4], &pos, &icon);
+    TEST_CHECK("Two FS - right", -4, 14);
+    adfs.drive[4].baricon = -1;
+
+    scsi.drive[4].baricon = 54;
+    icon_position(&adfs.drive[4], &pos, &icon);
+    TEST_CHECK("Two FS - left", -3, 54);
+    scsi.drive[4].baricon = -1;
+
+    adfs.drive[6].baricon = 46;
+    icon_position(&scsi.drive[4], &pos, &icon);
+    TEST_CHECK("Two FS - Ordering", -4, 46);
+    adfs.drive[6].baricon = -1;
+}
