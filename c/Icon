@@ -71,10 +71,11 @@ Icon* icon_add(Icon* icons, const char *sprite,
                const char *fs, const char *disc, int drive)
 {
     Icon *last = icons;
+    Icon *newicon = malloc(sizeof(Icon));
+
     while (last && last->next != NULL)
         last = last->next;
 
-    Icon *newicon = malloc(sizeof(Icon));
     newicon->val[0] = 'S';
     strcpy(newicon->val+1, sprite);
     strcpy(newicon->fs,    fs   ? fs   : "");
@@ -108,7 +109,7 @@ Icon* icon_remove(Icon* icons,
     while (i)
     {
         bool remove =
-            (!stricmp(i->fs,  fs    ? fs   : "")) &&
+            (!stricmp(i->fs,   fs   ? fs   : "")) &&
             (!stricmp(i->disc, disc ? disc : "")) &&
             (i->drive == drive);
 
