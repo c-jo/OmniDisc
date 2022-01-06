@@ -30,13 +30,13 @@ typedef enum
 
 typedef struct
 {
-    int         is_removeable:1;    /* Is a dynamic disc */
-    int         is_ejectable:1;     /* Has power eject */
-    int         is_floppy:1;        /* Uses floppy semantics for mounting and formatting */
-    char        discname[12];
-    const char *validation;
-    int         baricon;
-    ShareType   share;
+    int       is_removeable:1;    /* Is a dynamic disc */
+    int       is_ejectable:1;     /* Has power eject */
+    int       is_floppy:1;        /* Uses floppy semantics for mounting and formatting */
+    char      discname[12];
+    char      validation[14];
+    int       baricon;
+    ShareType share;
 } Drive;
 
 #define DriveFlags_Present 1

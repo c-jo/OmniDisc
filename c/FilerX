@@ -76,20 +76,24 @@ static void add_drive(FS *fs, int drive, const char *name,
         sprintf(drv->discname, ":%i", drive);
 
     drv->discname[10] = '\0';
-    drv->validation = icon_find(icons, fs->fsparams->name, drive, drv->discname);
+    drv->validation[ 0] = 'S';
+    drv->validation[13] = '\0';
+    strncpy(drv->validation+1,
+            icon_find(icons, fs->fsparams->name, drv->discname, drive), 12);
 
     drv->is_removeable = is_removeable;
     drv->is_ejectable = is_ejectable;
     drv->is_floppy = is_floppy;
 
     pollword |= Pollword_Drive;
-    printf("Adding drive %s %d %s\n", fs->fsparams->name, drive, name ? name : "<No name>");
+    printf("Adding drive %s %d %s %s\n",
+        fs->fsparams->name, drive, name ? name : "<No name>", drv->validation);
 }
 
 static void remove_drive(FS *fs, int drive)
 {
     Drive *drv = &(fs->drive[drive]);
-    drv->validation = NULL;
+    drv->validation[0] = 0;
 
     pollword |= Pollword_Drive;
 }
@@ -129,10 +133,10 @@ static _kernel_oserror* add_fs(const char *module, bool fd_names)
         fs->drive[n].is_ejectable  = false;
         fs->drive[n].is_floppy     = false;
 
-        fs->drive[n].discname[0] =  0;
-        fs->drive[n].validation  =  0;
-        fs->drive[n].baricon     = -1;
-        fs->drive[n].share       = ShareUnknown;
+        fs->drive[n].discname[0]   =  0;
+        fs->drive[n].validation[0] =  0;
+        fs->drive[n].baricon       = -1;
+        fs->drive[n].share         = ShareUnknown;
     }
 
     fs->next = fses;

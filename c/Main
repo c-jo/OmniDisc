@@ -170,7 +170,7 @@ static void create_icons(Drive *drive)
         cib.icon.bbox.ymax =  20 + ysize;
         cib.icon.flags     = 0x1700310b;
         cib.icon.data.ist.buffer      = drive->discname;
-        cib.icon.data.ist.validation  = (char*)drive->validation;
+        cib.icon.data.ist.validation  = drive->validation;
         cib.icon.data.ist.buffer_size = strlen(drive->discname);
 
         _swix(Wimp_CreateIcon, _INR(0,1)|_OUT(0),
@@ -200,7 +200,7 @@ static void update_icons(void)
         {
             Drive *drive = &(fs->drive[n]);
 
-            if (drive->validation == NULL)
+            if (drive->validation[0] == 0)
                 remove_icons(drive);
             else
                 create_icons(drive);
