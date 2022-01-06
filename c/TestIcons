@@ -50,10 +50,10 @@ void test_match(void)
 void test_compare(void)
 {
     Icon i1, i2, i3, i4;
-    i1.prev = NULL; i1.next = &i2;
-    i2.prev = &i1;  i2.next = &i3;
-    i3.prev = &i2;  i3.next = &i4;
-    i4.prev = &i3;  i4.next = NULL;
+    i1.next = &i2;
+    i2.next = &i3;
+    i3.next = &i4;
+    i4.next = NULL;
 
     // Should match any ADFS drive
     strcpy(i1.fs,    "ADFS");
@@ -104,6 +104,40 @@ void test_compare(void)
     assert(!strcmp(icon_find(&i1, "SCSI",4,"BigDisc"), "Sharddisc"  ));
 }
 
+void test_list(void)
+{
+    Icon *icons = 0;
+    icons = icon_add(icons, "harddisc", "ADFS", "HardDisc4", 4);
+    assert(icons != 0);
+    assert(icons->next == 0);
+    assert(!strcmp(icons->fs,   "ADFS"));
+    assert(!strcmp(icons->disc, "HardDisc4"));
+    assert(!strcmp(icons->val,  "Sharddisc"));
+
+    icons = icon_add(icons, "harddisc", "ADFS", "HardDisc5", 5);
+    assert(icons->next != 0);
+    assert(!strcmp(icons->disc, "HardDisc4"));
+    assert(!strcmp(icons->next->disc, "HardDisc5"));
+    assert(icons->next->next == 0);
+
+    icons = icon_remove(icons, "ADFS", "HardDisc4", 4);
+    assert(icons != 0);
+    assert(icons->next == 0);
+    assert(!strcmp(icons->fs,   "ADFS"));
+    assert(!strcmp(icons->disc, "HardDisc5"));
+    assert(!strcmp(icons->val,  "Sharddisc"));
+
+    icons = icon_remove(icons, "ADFS", "HardDisc4", 4);
+    assert(icons != 0);
+    assert(!strcmp(icons->disc, "HardDisc5"));
+
+    icons = icon_add(icons, "harddisc", "ADFS", "HardDisc6", 6);
+    icons = icon_remove(icons, "ADFS", "HardDisc6", 6);
+    assert(icons != 0);
+    assert(icons->next == 0);
+    assert(!strcmp(icons->disc, "HardDisc5"));
+}
+
 void test_command(void)
 {
     Icon *icons = 0;
@@ -117,39 +151,11 @@ void test_command(void)
     assert(icons->drive  == -1);
 }
 
-void test_list(void)
-{
-    Icon *icons = 0;
-    int found4 = 0, found5 = 0;
-
-    assert(0 == icon_command(&icons, "-fs ADFS -disc HardDisc4 switcher"));
-    assert(icons != 0);
-    assert(icons->next == NULL);
-    assert(icons->prev == NULL);
-
-    assert(0 == icon_command(&icons, "-fs ADFS -disc HardDisc5 switcher"));
-
-    assert(icons->prev == NULL);
-    assert(icons->next != NULL);
-
-    if (!strcmp(icons->disc, "HardDisc4")) found4 = 1;
-    if (!strcmp(icons->disc, "HardDisc5")) found5 = 1;
-
-    assert(icons->next->prev == icons);
-    assert(icons->next->next == 0    );
-
-    if (!strcmp(icons->next->disc, "HardDisc4")) found4 = 1;
-    if (!strcmp(icons->next->disc, "HardDisc5")) found5 = 1;
-
-    assert(found4 && found5);
-
-}
-
 int main(void)
 {
     test_match();
     test_compare();
-    test_command();
     test_list();
+    test_command();
     return 0;
 }
