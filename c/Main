@@ -361,7 +361,7 @@ static void mouse_click(WimpMouseClickEvent *event)
             menu_drive.y  = 96 + 44*menuitem_LAST;
         }
 
-        sprintf(drive_menu.menu.title, "%s::%d", fs->fsparams->name, drive);
+        sprintf(drive_menu.menu.title, "%s::%d", fs->fsparams->fsname, drive);
 
         if (sharefs)
         {
@@ -394,7 +394,7 @@ static void menu_selection(WimpMenuSelectionEvent *event)
         char discspec[16];
         int menuitem = (*event)[0];
 
-        sprintf(discspec, "%s::%i", menu_drive.fs->fsparams->name, menu_drive.drive);
+        sprintf(discspec, "%s::%i", menu_drive.fs->fsparams->fsname, menu_drive.drive);
 
         switch (menuitem)
         {
@@ -421,7 +421,7 @@ static void menu_selection(WimpMenuSelectionEvent *event)
                 _kernel_oserror *err;
                 char cmd[32];
                 sprintf(cmd, "%s:%%Dismount :%s",
-                                  menu_drive.fs->fsparams->name,
+                                  menu_drive.fs->fsparams->fsname,
                                   drive->discname);
 
                 err = _swix(OS_CLI, _IN(0), cmd);

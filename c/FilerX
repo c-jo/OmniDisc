@@ -79,15 +79,15 @@ static void add_drive(FS *fs, int drive, const char *name,
     drv->validation[ 0] = 'S';
     drv->validation[13] = '\0';
     strncpy(drv->validation+1,
-            icon_find(icons, fs->fsparams->name, drv->discname, drive), 12);
+            icon_find(icons, fs->fsparams->fsname, drv->discname, drive), 12);
 
     drv->is_removeable = is_removeable;
     drv->is_ejectable = is_ejectable;
     drv->is_floppy = is_floppy;
 
     pollword |= Pollword_Drive;
-    printf("Adding drive %s %d %s %s\n",
-        fs->fsparams->name, drive, name ? name : "<No name>", drv->validation);
+    printf("Adding drive %s %d %s\n",
+        fs->fsparams->fsname, drive, name ? name : "<No name>");
 }
 
 static void remove_drive(FS *fs, int drive)
@@ -113,36 +113,23 @@ static _kernel_oserror err_cannot_add = { 0, "Cannot add filing system registrat
 
 static _kernel_oserror* add_fs(const char *module, bool fd_names)
 {
-    FS *fs;
-    int n;
-    if (strlen(module) > 11)
-        return &err_bad_module;
+    FS *newfs = NULL;
+    /*
+        FS *fs;
 
     fs = malloc(sizeof(FS));
     if (!fs)
         return &err_no_memory;
-
-    fs->fsparams = fsparams_create(module);
-    if (fs->fsparams == NULL)
+    */
+    fsparameters_t *fsparams = fsparams_create(module);
+    if (fsparams == NULL)
         return &err_cannot_add; /* Not ideal - we cannot differentiate memory and FS problems */
-    fs->fd_names = fd_names;
 
-    for (n=0; n<8; ++n)
-    {
-        fs->drive[n].is_removeable = false;
-        fs->drive[n].is_ejectable  = false;
-        fs->drive[n].is_floppy     = false;
+    fses = fs_add(fses, fsparams, &newfs);
+    if (newfs == NULL)
+        return &err_no_memory;
 
-        fs->drive[n].discname[0]   =  0;
-        fs->drive[n].validation[0] =  0;
-        fs->drive[n].baricon       = -1;
-        fs->drive[n].share         = ShareUnknown;
-    }
-
-    fs->next = fses;
-    fses     = fs;
-
-    find_drives(fs);
+    find_drives(newfs);
     pollword |= Pollword_FS;
     return 0;
 }
@@ -225,7 +212,7 @@ _kernel_oserror *fsdrive_share(FS *fs, int drive,
     _kernel_oserror *e = 0;
     char *discname = fs->drive[drive].discname;
     char path[32];
-    sprintf(path, "%s::%s.$", fs->fsparams->name, discname);
+    sprintf(path, "%s::%s.$", fs->fsparams->fsname, discname);
 
     if (fs->drive[drive].share != sharetype)
     {

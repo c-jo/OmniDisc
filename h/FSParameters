@@ -8,10 +8,10 @@
 #define FSPARAMETERS_H
 
 typedef struct fsparameters_s {
-    char name[32];
+    //char name[32];
     char swiprefix[32];
     char fsname[32];
-    int fsnumber;
+    int  fsnumber;
 
     int swi_drives;
     int swi_discop;

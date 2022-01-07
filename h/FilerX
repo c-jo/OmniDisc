@@ -4,6 +4,7 @@
 #include "bool.h"
 #include "Wimp.h"
 
+#include "FS.h"
 #include "Icon.h"
 #include "Tools.h"
 #include "FSParameters.h"
@@ -20,38 +21,10 @@ extern bool     sharefs;
 #define Pollword_Drive 0x02
 #define Pollword_Icon  0x04
 
-typedef enum
-{
-    ShareUnknown     =-1,
-    NotShared        = 0,
-    ShareProtected   = 1,
-    ShareUnprotected = 2
-} ShareType;
 
-typedef struct
-{
-    int       is_removeable:1;    /* Is a dynamic disc */
-    int       is_ejectable:1;     /* Has power eject */
-    int       is_floppy:1;        /* Uses floppy semantics for mounting and formatting */
-    char      discname[12];
-    char      validation[14];
-    int       baricon;
-    ShareType share;
-} Drive;
 
 #define DriveFlags_Present 1
 #define DriveFlags_IconBar 2
-
-typedef struct FS_s
-{
-    fsparameters_t *fsparams;
-
-    bool      fd_names;
-    unsigned  posiion;
-    Drive     drive[8];
-
-    struct FS_s *next;
-} FS;
 
 extern FS *fses;
 

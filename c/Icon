@@ -54,6 +54,7 @@ _kernel_oserror *icon_command(Icon **icons, const char *cmd)
     }
     return 0;
 }
+
 /*******************************************************************
  Function:      icon_add
  Description:   Adds an icon for the given fs,disc and drive.
@@ -100,7 +101,7 @@ Icon* icon_remove(Icon* list,
                   const char *fs, const char *disc, int drive)
 {
     Icon *i = list;
-    Icon *head = 0, *last = 0;
+    Icon *head = NULL, *last = NULL;
 
     while (i)
     {
