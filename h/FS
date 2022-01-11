@@ -1,0 +1,66 @@
+#ifndef FS_H
+#define FS_H
+
+#include "bool.h"
+#include "FSParameters.h"
+
+typedef enum
+{
+    ShareUnknown     =-1,
+    NotShared        = 0,
+    ShareProtected   = 1,
+    ShareUnprotected = 2
+} ShareType;
+
+typedef struct
+{
+    int is_removeable:1; /* Is a dynamic disc */
+    int is_ejectable:1;  /* Has power eject */
+    int is_floppy:1;     /* Uses floppy semantics for mounting and formatting */
+
+    char discname[12];
+
+    ShareType share;
+} Drive;
+
+typedef struct FS_s
+{
+    fsparameters_t *fsparams;
+
+    bool      fd_names;
+    Drive     drive[8];
+
+    struct FS_s *next;
+} FS;
+
+/*******************************************************************
+ Function:      fs_add
+ Description:   Adds a FS for the given fs_params.
+ Parameters:    list   -> current head of the FS list
+                params -> the FS params block for the FS to be added.
+                          the list takes ownership of this pointer:
+                          it will be free()d on fs_remove()
+                newfs  -> pointer to update with the new FS, or NULL
+ Returns:       pointer to the new head of the FS list.
+ ******************************************************************/
+FS* fs_add(FS *list, fsparameters_t *paams, FS **newfs);
+
+/*******************************************************************
+ Function:      fs_remove
+ Description:   Removes a FS for the given fs_params.
+ Parameters:    list   -> current head of the FS list
+                params -> the FS params block for the FS to be removed.
+ Returns:       pointer to the new head of the FS list.
+ ******************************************************************/
+FS* fs_remove(FS *list, fsparameters_t *params);
+
+/*******************************************************************
+ Function:      fs_find
+ Description:   Find a FS for the given fs_params.
+ Parameters:    list    -> current head of the FS list
+                fsnumber = the FS number to find.
+ Returns:       pointer to the FS, or NULL if not found.
+ ******************************************************************/
+FS* fs_find(FS *list, int fsnumber);
+
+#endif // FS_H

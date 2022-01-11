@@ -10,7 +10,7 @@ endif
 #
 # Program specific options:
 #
-COMPONENT  = testiconpos
+COMPONENT  = testbaricon
 
 # Specifies additional targets for startup
 #INITTARGET = inittarget
@@ -44,8 +44,8 @@ LIBS       = ${CLIB}
 endif
 
 # Objects to build, using the format o.<name> (will be varied for build type)
-OBJS       = IconPosition \
-             TestIconPos
+OBJS       = BarIcon \
+             TestBarIcon
 
 ifdef BUILD32
 OBJS      := $(OBJS:%=o.%)

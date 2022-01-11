@@ -1,0 +1,227 @@
+#include "BarIcon.h"
+#include "Icon.h"
+
+//#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+
+#include "swis.h"
+
+static void *rma_alloc(size_t size)
+{
+    void *ptr;
+    if  (_swix(OS_Module, _IN(0)|_IN(3)|_OUT(2), 6, size, &ptr)) return 0;
+    return ptr;
+}
+
+static void rma_free(void *ptr)
+{
+    _swix(OS_Module, _IN(0)|_IN(2), 7, ptr);
+}
+
+#define malloc  rma_alloc
+#define free    rma_free
+
+/*******************************************************************
+ Function:      baricon_position
+ Description:   Determines where to put an icon on the icon bar. Icon
+                and pos will be updated with the icon to create next to
+                or the priority. Pos will be set to the positon io the
+                icobar. These values can be used with Wimp_CreateIcon.
+ Parameters:    fs_list      => list of file sstems
+                baricon_list => list of bar icons
+                fsnumber = fs number to create the icon for
+                drive    = drive to create the icon far
+                icon  => updated with icon handle or priority
+                pos   => updated with position
+ Returns:       Nothing, but *icon and *pos will be updated.
+ ******************************************************************/
+static void baricon_position(FS *fs_list, BarIcon *baricon_list,
+                             int fsnumber, int drive, int *pos, int *icon)
+{
+    int clown = -2; // Clowns to the left of me
+    int joker = -2; // Jokers to my right
+    FS *fs;
+
+    // Find an icon to put ours next to, if we can
+    for (fs = fs_list; fs; fs = fs->next)
+    {
+        int n;
+        for (n = 0; n < 8; ++n)
+        {
+            int fsn = fs->fsparams->fsnumber;
+            if (fsn == fsnumber && n == drive)
+            {
+#ifdef DEBUG
+                printf("FS:%d Drive:%d is the icon to insert.\n", fsn, n);
+#endif
+                if (clown == -2)
+                    clown = -1;
+                joker = -1;
+            }
+            else
+            {
+                BarIcon *bi = baricon_find(baricon_list, fsn, n);
+#ifdef DEBUG
+                printf("Icon for FS:%d Drive:%d %s found.\n", fsn, drive,
+                       (bi == 0 ? "Not" : "WAS"));
+#endif
+                if (bi != NULL)
+                {
+                    if (joker ==  -2)
+                        clown = bi->handle;
+                    else if (joker == -1)
+                        joker = bi->handle;
+                }
+            }
+#ifdef DEBUG
+            printf("FS:%d Drive:%d : %d,%d\n",
+                fs->fsparams->fsnumber, n,
+                clown, joker);
+#endif
+        }
+    }
+
+    if (clown >= 0)
+    {
+        *pos = -4;     // To the right of
+        *icon = clown; // Icon to the left.
+    }
+    else if (joker >= 0)
+    {
+        *pos  = -3;    // To the left of
+        *icon = joker; // Icon to the right.
+    }
+    else
+    {
+        *pos  = -5;         // Left side, high
+        *icon = 0x70000000; // priority.
+    }
+}
+
+BarIcon *baricon_update(BarIcon *list, FS* fslist, Icon *iconlist)
+{
+    FS *fs;
+    BarIcon *bi = list, *last = NULL;
+
+    /* Remove any icons for drives that no longer exist */
+    while (bi)
+    {
+        fs = fs_find(fslist, bi->fsnumber);
+
+        if (!fs || fs->drive[bi->drive].discname[0] == '\0')
+        {
+            BarIcon *d = bi;
+            if (bi->prev) bi->prev->next = bi->next;
+            if (bi->next) bi->next->prev = bi->prev;
+
+            // If we were the head of the list then update it
+            if (list == bi)
+                list = bi->next;
+
+            // Move onto the nxt item
+            bi = bi->next;
+
+            // Delete this one
+            baricon_delete_icon(d->handle);
+            free(d);
+        }
+        else
+        {
+            last = bi;
+            bi = bi->next;
+        }
+    }
+
+    /* Add any icons for drives that don't have them */
+    for (fs = fslist; fs; fs = fs->next)
+    {
+        int n;
+        for (n=0;  n<8; ++n)
+        {
+            if (fs->drive[n].discname[0] != '\0')
+            {
+                if (!baricon_find(list, fs->fsparams->fsnumber, n))
+                {
+                   int window, priority;
+                    BarIcon *icon = malloc(sizeof(BarIcon));
+
+                    icon->fsnumber = fs->fsparams->fsnumber;
+                    icon->drive    = n;
+                    strncpy(icon->text, fs->drive[n].discname, 11);
+
+                    icon->validation[0] = 'S';
+                    strncpy((icon->validation)+1,
+                             icon_find(iconlist, fs->fsparams->fsname,
+                                       fs->drive[n].discname, n), 13);
+
+                    baricon_position(fslist, list, fs->fsparams->fsnumber, n,
+                                     &window, &priority);
+
+                    icon->handle = baricon_create_icon(
+                                       icon->text, icon->validation, 12,
+                                       window, priority);
+
+                    icon->next = NULL;
+                    icon->prev = last;
+
+                    if (last)
+                        last->next = icon;
+                    else
+                        list = icon;
+
+                    last = icon;
+                }
+            }
+        } // for n
+    } // for fs
+    return list;
+}
+
+void baricon_refresh(BarIcon *list, FS* fslist, Icon *iconlist)
+{
+    BarIcon *icon;
+    for (icon = list; icon; icon=icon->next)
+    {
+        FS *fs = fs_find(fslist, icon->fsnumber);
+        const char *new_sprite;
+        char *discname = fs ? fs->drive[icon->drive].discname : NULL;
+
+        if (!fs || discname[0] == '\0')
+            continue;
+
+        new_sprite = icon_find(iconlist, fs->fsparams->fsname,
+                               discname, icon->drive);
+
+        if (strcmp(icon->validation, new_sprite))
+        {
+            strncpy((icon->validation)+1, new_sprite, 13);
+            baricon_redraw_icon(icon->handle);
+        }
+
+        if (strcmp(icon->text, discname))
+        {
+            strncpy((icon->validation)+1, new_sprite, 13);
+            baricon_resize_icon(icon->handle, icon->text, icon->validation);
+        }
+    }
+}
+
+BarIcon* baricon_find(BarIcon *list, int fsnumber, int drive)
+{
+    BarIcon *i;
+    for (i=list; i; i=i->next)
+        if (i->fsnumber == fsnumber && i->drive == drive)
+            break;
+    return i;
+}
+
+BarIcon* baricon_find_icon(BarIcon *list, int handle)
+{
+    BarIcon *i;
+    for (i=list; i; i=i->next)
+        if (i->handle == handle)
+            break;
+
+    return i;
+}

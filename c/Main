@@ -11,6 +11,7 @@
 #endif
 
 #include "ShareFS.h"
+#include "BarIcon.h"
 
 /* Define this to add in the support for checking discs */
 #define SUPPORT_CHECK
@@ -20,7 +21,7 @@
 static char *share_styles[] =
     { "Not shared", "Share protected", "Share unprotected" };
 
-static unsigned tray_window = 0;
+// static unsigned tray_window = 0;
 
 enum menuitems_e {
     menuitem_namedisc,
@@ -49,10 +50,9 @@ static WimpMenuItem *share_item = 0;
 
 static struct
 {
-    FS      *fs;
-    unsigned drive;
-    int      x,y;
-} menu_drive = { 0, 0, 0, 0 };
+    int fsnumber, drive;
+    int x,y;
+} menu_drive = { -1, -1, 0, 0 };
 
 static WimpMenu name_menu;
 
@@ -64,6 +64,7 @@ static struct share_menu_s
     WimpMenuItem more[2];
 } share_menu;
 
+static BarIcon *baricons = 0;
 
 static void make_menu(WimpMenu *menu, const char *title)
 {
@@ -145,117 +146,87 @@ static void menu_shade(WimpMenu *menu, int item, bool shaded)
 static void get_icon_size(const char *icon, unsigned *x, unsigned *y)
 {
     unsigned width,height,mode,xeig,yeig;
-    _swi(Wimp_SpriteOp, _IN(0)|_IN(2)|_OUTR(3,4)|_OUT(6), 0x28,
-        icon, &width, &height, &mode);
+    *x = *y = -1;
 
-    _swi(OS_ReadModeVariable, _INR(0,1)|_OUT(2), mode, 4,  &xeig);
-    _swi(OS_ReadModeVariable, _INR(0,1)|_OUT(2), mode, 5,  &yeig);
+    _swi(Wimp_SpriteOp, _IN(0)|_IN(2)|_OUTR(3,4)|_OUT(6),
+                        0x28, icon, &width, &height, &mode);
+
+    _swi(OS_ReadModeVariable, _INR(0,1)|_OUT(2), mode, 4, &xeig);
+    _swi(OS_ReadModeVariable, _INR(0,1)|_OUT(2), mode, 5, &yeig);
 
     *x = width  << xeig;
     *y = height << yeig;
 }
 
-static void create_icons(Drive *drive)
+int baricon_create_icon(char *text, char *validation, int buffer_size,
+                        int window_handle, int priority)
 {
-    if (drive->baricon == -1)
-    {
-        unsigned xsize,ysize;
-        WimpCreateIconBlock cib;
-        int icon;
+    unsigned xsize,ysize;
+    WimpCreateIconBlock cib;
+    
+    get_icon_size(validation+1, &xsize, &ysize);
 
-        get_icon_size(drive->validation+1, &xsize, &ysize);
-        cib.window_handle  = - 5;
-        cib.icon.bbox.xmin =   0;
-        cib.icon.bbox.ymin = -16;
-        cib.icon.bbox.xmax =  xsize;
-        cib.icon.bbox.ymax =  20 + ysize;
-        cib.icon.flags     = 0x1700310b;
-        cib.icon.data.ist.buffer      = drive->discname;
-        cib.icon.data.ist.validation  = drive->validation;
-        cib.icon.data.ist.buffer_size = strlen(drive->discname);
+    cib.window_handle  = window_handle;
+    cib.icon.bbox.xmin = 0;
+    cib.icon.bbox.ymin = -16;
+    cib.icon.bbox.xmax = xsize;
+    cib.icon.bbox.ymax = 20 + ysize;
+    cib.icon.flags     = 0x1700310b;
+    cib.icon.data.ist.buffer      = text;
+    cib.icon.data.ist.validation  = validation;
+    cib.icon.data.ist.buffer_size = buffer_size;
 
-        icon_position(drive, &cib.window_handle, &icon);
-
-        _swix(Wimp_CreateIcon, _INR(0,1)|_OUT(0), icon, &cib, &drive->baricon);
-    }
+    return _swi(Wimp_CreateIcon, _INR(0,1)|_RETURN(0), priority, &cib);
 }
 
-static void remove_icons(Drive *drive)
+void baricon_delete_icon(int handle)
 {
-    if (drive->baricon != -1)
-    {
-        WimpDeleteIconBlock dib;
-        dib.window_handle = -2;
-        dib.icon_handle   = drive->baricon;
-        _swix(Wimp_DeleteIcon, _IN(1), &dib);
-        drive->baricon = -1;
-    }
+    WimpDeleteIconBlock dib;
+    dib.window_handle = WimpWindow_Iconbar;
+    dib.icon_handle    =handle;
+    _swi(Wimp_DeleteIcon, _IN(1), &dib);
 }
 
-static void update_icons(void)
+void baricon_redraw_icon(int handle)
 {
-    FS *fs;
-    for (fs = fses; fs; fs = fs->next)
-    {
-        int n;
-        for (n=0; n<8; ++n)
-        {
-            Drive *drive = &(fs->drive[n]);
-
-            if (drive->validation[0] == 0)
-                remove_icons(drive);
-            else
-                create_icons(drive);
-
-        }
-    }
+     // Refresh the icon
+     WimpSetIconStateBlock sisblock;
+     sisblock.window_handle = WimpWindow_Iconbar;
+     sisblock.icon_handle   = handle;
+     sisblock.EOR_word = sisblock.clear_word = 0;
+     _swi(Wimp_SetIconState, _IN(1), &sisblock);
 }
 
-static void clear_icons(void)
-{
-    FS *fs;
-    for (fs = fses; fs; fs = fs->next)
-    {
-        int n;
-        for (n=0; n<8; ++n)
-        {
-            Drive *drive = &(fs->drive[n]);
-            drive->baricon = -1;
-        }
-    }
-}
-
-static void resize_icon(Drive *drive)
+void baricon_resize_icon(int handle, char *text, char *validation)
 {
      unsigned xsize,ysize,textwidth;
      WimpGetIconStateBlock gisblock;
      WimpSetIconStateBlock sisblock;
      WimpCreateIconBlock ciblock;
      WimpDeleteIconBlock diblock;
-     int icon;
 
      // Where is the icon in question?
-     gisblock.window_handle = -2;
-     gisblock.icon_handle   = drive->baricon;
+     gisblock.window_handle = WimpWindow_Iconbar;
+     gisblock.icon_handle   = handle;
      _swix(Wimp_GetIconState, _IN(1), &gisblock);
 
      // How big is the icon?
-     get_icon_size(drive->validation+1, &xsize, &ysize);
+     get_icon_size(validation+1, &xsize, &ysize);
      // And the text
      _swix(Wimp_TextOp, _INR(0,2) | _OUT(0),
-               1, &new_name, 0, &textwidth);
+               1, text, 0, &textwidth);
      // Which is bigger?
      if (textwidth > xsize) xsize = textwidth;
 
      // Resize the icon
      _swix(Wimp_ResizeIcon, _INR(0,5),
-               -2, drive->baricon,
+               WimpWindow_Iconbar, handle,
                gisblock.icon.bbox.xmin,        -16,
                gisblock.icon.bbox.xmin + xsize, 20+ysize);
 
      // Refresh the icon
-     sisblock.window_handle = -2;
-     sisblock.icon_handle   = drive->baricon;
+     sisblock.window_handle = WimpWindow_Iconbar;
+     sisblock.icon_handle   = handle;
      sisblock.EOR_word = sisblock.clear_word = 0;
      _swix(Wimp_SetIconState, _IN(1), &sisblock);
 
@@ -263,13 +234,13 @@ static void resize_icon(Drive *drive)
      ciblock.window_handle  =  -5;
      ciblock.icon.bbox.xmin =   0;
      ciblock.icon.bbox.ymin = -16;
-     ciblock.icon.bbox.xmax =  34;
+     ciblock.icon.bbox.xmax =   2; // **TODO** could this be 0?
      ciblock.icon.bbox.ymax =  54;
      ciblock.icon.flags     =   0;
 
-     _swix(Wimp_CreateIcon, _INR(0,1)|_OUT(0), drive->baricon, &ciblock, &icon);
-     diblock.window_handle = -2;
-     diblock.icon_handle   = icon;
+     diblock.window_handle = WimpWindow_Iconbar;
+     _swix(Wimp_CreateIcon, _INR(0,1)|_OUT(0),
+               handle, &ciblock, &diblock.icon_handle);
      _swix(Wimp_DeleteIcon, _IN(1), &diblock);
 }
 
@@ -287,12 +258,12 @@ static void menu_update(FS *fs, int drive)
     /* Decide which operations are available by looking at the commands
        that can be performed. */
 
-    printf("Attempting shading for %s, %i\n", fs->fsparams->fsname, drive);
+    //printf("Attempting shading for %s, %i\n", fs->fsparams->fsname, drive);
 #ifdef SUPPORT_EJECT
     menu_shade(&drive_menu.menu, menuitem_format,
                (bool)! fs->drive[drive].is_ejectable);
 #endif
-    printf("Format shading\n");
+    //printf("Format shading\n");
 
     /* Format */
     menu_shade(&drive_menu.menu, menuitem_format,
@@ -308,8 +279,8 @@ static void menu_update(FS *fs, int drive)
     menu_shade(&drive_menu.menu, menuitem_verify,
                (bool)! fsdrive_tool_capable(fs, menu_drive.drive, to_verify));
 
-    menu_drive.fs    = fs;
-    menu_drive.drive = drive;
+    menu_drive.fsnumber = fs->fsparams->fsnumber;
+    menu_drive.drive    = drive;
 }
 
 static void mouse_click(WimpMouseClickEvent *event)
@@ -317,20 +288,14 @@ static void mouse_click(WimpMouseClickEvent *event)
     FS *fs = NULL;
     int drive = -1;
 
-    if (event->window_handle == -2 && event->icon_handle != -1) // Icon bar
+    if (event->window_handle == WimpWindow_Iconbar &&
+        event->icon_handle != -1) // Icon bar
     {
-        FS *f;
-        for (f = fses; f; f = f->next)
+        BarIcon *bi = baricon_find_icon(baricons, event->icon_handle);
+        if (bi)
         {
-            int n;
-            for (n = 0; n < 8; ++n)
-            {
-                if (f->drive[n].baricon == event->icon_handle)
-                {
-                    drive = n;
-                    fs = f;
-                }
-            }
+            fs    = fs_find(fses, bi->fsnumber);
+            drive = bi->drive;
         }
     }
 
@@ -352,12 +317,12 @@ static void mouse_click(WimpMouseClickEvent *event)
 
     if (event->buttons == 2) // Menu click on drive
     {
-        menu_drive.fs    = fs;
-        menu_drive.drive = drive;
-        menu_drive.x     = event->mouse_x;
-        menu_drive.y     = event->mouse_y;
+        menu_drive.fsnumber = fs->fsparams->fsnumber;
+        menu_drive.drive    = drive;
+        menu_drive.x        = event->mouse_x;
+        menu_drive.y        = event->mouse_y;
 
-        if (event->window_handle == -2)
+        if (event->window_handle == WimpWindow_Iconbar)
         {
             menu_drive.x -= 0x40;
             menu_drive.y  = 96 + 44*menuitem_LAST;
@@ -389,111 +354,120 @@ static void mouse_click(WimpMouseClickEvent *event)
 
 static void menu_selection(WimpMenuSelectionEvent *event)
 {
-    if (menu_drive.fs != NULL && menu_drive.drive != -1)
+    int menuitem = (*event)[0];
+    WimpGetPointerInfoBlock pointer_info;
+    FS *fs = 0;
+    Drive *drive = 0;
+    char discspec[16];
+
+    if (menu_drive.fsnumber == -1 || menu_drive.drive == -1)
+        return;
+
+    fs = fs_find(fses, menu_drive.fsnumber);
+    if (fs)
+        drive = &(fs->drive[menu_drive.drive]);
+
+    if (fs == NULL || drive == NULL)
+        return;
+
+    sprintf(discspec, "%s::%i", fs->fsparams->fsname, menu_drive.drive);
+
+    switch (menuitem)
     {
-        WimpGetPointerInfoBlock pointer_info;
-        Drive *drive = &menu_drive.fs->drive[menu_drive.drive];
-        char discspec[16];
-        int menuitem = (*event)[0];
-
-        sprintf(discspec, "%s::%i", menu_drive.fs->fsparams->fsname, menu_drive.drive);
-
-        switch (menuitem)
-        {
-        case menuitem_namedisc:
-            if ((*event)[1] == 0)
-            {
-                _kernel_oserror *err;
-                char cmd[32];
-                sprintf(cmd, "%%Filer_CloseDir %s", discspec);
-                _swix(OS_CLI, _IN(0), cmd);
-
-                err = _swix(OS_FSControl, _INR(0,2), 50, discspec, new_name);
-                if (err)
-                    _swix(Wimp_ReportError, _INR(0,2), err, 1, 0);
-                else
-                {
-                    strcpy(drive->discname, new_name);
-                    resize_icon(drive);
-                }
-            }
-            break;
-        case menuitem_dismount:
-            {
-                _kernel_oserror *err;
-                char cmd[32];
-                sprintf(cmd, "%s:%%Dismount :%s",
-                                  menu_drive.fs->fsparams->fsname,
-                                  drive->discname);
-
-                err = _swix(OS_CLI, _IN(0), cmd);
-                if (err)
-                    _swix(Wimp_ReportError, _INR(0,2), err, 1, 0);
-            }
-            break;
-        case menuitem_share:
+    case menuitem_namedisc:
+        if ((*event)[1] == 0)
         {
             _kernel_oserror *err;
-            ShareType sharetype = (ShareType)((*event)[1]);
-            err = fsdrive_share(menu_drive.fs, menu_drive.drive, sharetype);
-            if (err) _swix(Wimp_ReportError, _INR(0,2), err, 1, 0);
-            break;
+            char cmd[32];
+            sprintf(cmd, "%%Filer_CloseDir %s", discspec);
+            _swix(OS_CLI, _IN(0), cmd);
+
+            err = _swix(OS_FSControl, _INR(0,2), 50, discspec, new_name);
+            if (err)
+                _swix(Wimp_ReportError, _INR(0,2), err, 1, 0);
+            else
+            {
+                strcpy(drive->discname, new_name);
+                pollword |= Pollword_Icon;
+                //baricon_resize_icon(baricon_find(baricons, menu_drive.fsnumber, menu_drive.drive));
+            }
         }
+        break;
+    case menuitem_dismount:
+        {
+            _kernel_oserror *err;
+            char cmd[32];
+            sprintf(cmd, "%s:%%Dismount :%s",
+                              fs->fsparams->fsname,
+                              drive->discname);
+
+            err = _swix(OS_CLI, _IN(0), cmd);
+            if (err)
+                _swix(Wimp_ReportError, _INR(0,2), err, 1, 0);
+        }
+        break;
+    case menuitem_share:
+    {
+        _kernel_oserror *err;
+        ShareType sharetype = (ShareType)((*event)[1]);
+        err = fsdrive_share(fs, menu_drive.drive, sharetype);
+        if (err) _swix(Wimp_ReportError, _INR(0,2), err, 1, 0);
+        break;
+    }
 #ifdef SUPPORT_EJECT
-        case menuitem_eject:
-            _swi(Wimp_ReportError, _INR(0,2), "0000Eject", 1, 0);
-            break;
+    case menuitem_eject:
+        _swi(Wimp_ReportError, _INR(0,2), "0000Eject", 1, 0);
+        break;
 #endif
-        case menuitem_backup:
-            break;
+    case menuitem_backup:
+        break;
 
-        case menuitem_format:
+    case menuitem_format:
 #ifdef SUPPORT_CHECK
-        case menuitem_check:
+    case menuitem_check:
 #endif
-        case menuitem_verify:
-            {
-                tooloperation_t tooloperation;
-                _kernel_oserror *err;
-
-                if (menuitem == menuitem_format)
-                    tooloperation = to_format;
-                else if (menuitem == menuitem_check)
-                    tooloperation = to_check;
-                else /* Always default to verify */
-                    tooloperation = to_verify;
-
-                err = fsdrive_tool_invoke(menu_drive.fs, menu_drive.drive,
-                                          tooloperation);
-                if (err)
-                    _swi(Wimp_ReportError, _INR(0,2), err, 1, 0);
-            }
-            break;
-
-        case menuitem_free: // Free
-            {
-                char cmd[64];
-                sprintf(cmd, "%%ShowFree -FS %s %d",
-                             menu_drive.fs->fsparams->fsname, menu_drive.drive);
-                _swix(OS_CLI, _IN(0), &cmd);
-            }
-            break;
-        }
-
-        _swix(Wimp_GetPointerInfo, _IN(1), &pointer_info);
-
-        if (pointer_info.button_state & Wimp_MouseButtonAdjust)
+    case menuitem_verify:
         {
-            menu_update(menu_drive.fs, menu_drive.drive);
-            _swi(Wimp_CreateMenu, _INR(1,3),
-                     &drive_menu, menu_drive.x, menu_drive.y);
+            tooloperation_t tooloperation;
+            _kernel_oserror *err;
 
+            if (menuitem == menuitem_format)
+                tooloperation = to_format;
+            else if (menuitem == menuitem_check)
+                tooloperation = to_check;
+            else /* Always default to verify */
+                tooloperation = to_verify;
+
+            err = fsdrive_tool_invoke(fs, menu_drive.drive,
+                                      tooloperation);
+            if (err)
+                _swi(Wimp_ReportError, _INR(0,2), err, 1, 0);
         }
-        else
+        break;
+
+    case menuitem_free: // Free
         {
-            menu_drive.fs    =  0;
-            menu_drive.drive = -1;
+            char cmd[64];
+            sprintf(cmd, "%%ShowFree -FS %s %d",
+                         fs->fsparams->fsname, menu_drive.drive);
+            _swix(OS_CLI, _IN(0), &cmd);
         }
+        break;
+    }
+
+    _swix(Wimp_GetPointerInfo, _IN(1), &pointer_info);
+
+    if (pointer_info.button_state & Wimp_MouseButtonAdjust)
+    {
+        menu_update(fs, menu_drive.drive);
+        _swi(Wimp_CreateMenu, _INR(1,3),
+                 &drive_menu, menu_drive.x, menu_drive.y);
+
+    }
+    else
+    {
+        menu_drive.fsnumber = -1;
+        menu_drive.drive    = -1;
     }
 }
 
@@ -511,7 +485,6 @@ int main(int argc, char *argv[])
              &task_handle);
 
     make_menus();
-    update_icons();
 
     while (!quit)
     {
@@ -536,7 +509,11 @@ int main(int argc, char *argv[])
 
         case 13: // Pollword Non-Zero
             {
-                if (pollword & Pollword_Drive) update_icons();
+                if (pollword & Pollword_Drive)
+                    baricons = baricon_update(baricons, fses, icons);
+                if (pollword & Pollword_Icon)
+                    baricon_refresh(baricons, fses, icons);
+
                 pollword = 0;
             }
             break;
@@ -557,7 +534,9 @@ int main(int argc, char *argv[])
         }
     }
 
+    // Clear the icon bar icons
+    baricons = baricon_update(baricons, NULL, NULL);
+
     _swi(Wimp_CloseDown, _INR(0,1), task_handle, 0x4b534154);
-    clear_icons();
     task_handle = 0;
 }

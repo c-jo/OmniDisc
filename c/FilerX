@@ -71,29 +71,29 @@ static void add_drive(FS *fs, int drive, const char *name,
     Drive *drv = &(fs->drive[drive]);
 
     if (name)
-        strncpy(drv->discname, name, 10);
+        strncpy(drv->discname, name, 11);
     else
         sprintf(drv->discname, ":%i", drive);
 
     drv->discname[10] = '\0';
-    drv->validation[ 0] = 'S';
-    drv->validation[13] = '\0';
-    strncpy(drv->validation+1,
-            icon_find(icons, fs->fsparams->fsname, drv->discname, drive), 12);
+//    drv->validation[ 0] = 'S';
+//    drv->validation[13] = '\0';
+//    strncpy(drv->validation+1,
+//            icon_find(icons, fs->fsparams->fsname, drv->discname, drive), 12);
 
     drv->is_removeable = is_removeable;
-    drv->is_ejectable = is_ejectable;
-    drv->is_floppy = is_floppy;
+    drv->is_ejectable  = is_ejectable;
+    drv->is_floppy     = is_floppy;
 
     pollword |= Pollword_Drive;
-    printf("Adding drive %s %d %s\n",
-        fs->fsparams->fsname, drive, name ? name : "<No name>");
+    //printf("Adding drive %s %d %s\n",
+    //    fs->fsparams->fsname, drive, name ? name : "<No name>");
 }
 
 static void remove_drive(FS *fs, int drive)
 {
     Drive *drv = &(fs->drive[drive]);
-    drv->validation[0] = 0;
+    drv->discname[0] = 0;
 
     pollword |= Pollword_Drive;
 }

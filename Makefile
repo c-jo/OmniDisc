@@ -6,10 +6,10 @@ OBJS        = FilerX \
 			  Enter \
 			  FindDrives \
 			  Icon \
-			  IconPosition \
 			  Tools \
 			  FS \
-			  FSParameters
+			  FSParameters \
+			  BarIcon
 
 CMHGDEPENDS = FilerX
 CUSTOMRES   = no

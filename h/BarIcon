@@ -1,0 +1,67 @@
+#ifndef BARICON_H
+#define BARICON_H
+
+#include "FS.h"
+#include "Icon.h"
+
+typedef struct BarIcon_s
+{
+    int  fsnumber;
+    int  drive;
+    char text[12];
+    char validation[16];
+    int  handle;
+
+    struct BarIcon_s *prev;
+    struct BarIcon_s *next;
+} BarIcon;
+
+/* provided elsewhere */
+int  baricon_create_icon(char *text, char *validation, int buffer_size,
+                         int window, int priority);
+
+void baricon_delete_icon(int handle);
+
+void baricon_redraw_icon(int);
+void baricon_resize_icon(int, char*, char*);
+
+void baricon_update_icon(int handle,
+                         char* new_text, char* new_validation);
+
+/*******************************************************************
+ Function:      baricon_update
+ Description:   Update the icon bar icons based on the available
+                drives in the filing systems in fslist. Icons will
+                be created using sprites defined in iconlist.
+                icons will be created by calling baricon_create_icon
+                and deleted ny calling baricon_delete_icon (see
+                above).
+ Parameters:    list     -> head of the baricon list
+                fslist   -> list of file systems
+                iconlist -> list of icons
+ Returns:       pointer to the new head of the list.
+ ******************************************************************/
+BarIcon *baricon_update(BarIcon *list, FS* fslist, Icon *iconlist);
+
+void baricon_refresh(BarIcon *list, FS* fslist, Icon *iconlist);
+
+/*******************************************************************
+ Function:      baricon_find
+ Description:   Look for a baricon structure in the list.
+ Parameters:    list       -> head of the list to look in.
+                fssnumber   = fs number to look for
+                drive       = drive number to look for
+ Returns:       pointer to the BarIcon, or NULL if not found.
+ ******************************************************************/
+BarIcon *baricon_find(BarIcon *list, int fsnumber, int drive);
+
+/*******************************************************************
+ Function:      baricon_find_icon
+ Description:   Look for a baricon structure in the list.
+ Parameters:    list       -> head of the list to look in.
+                icon_hnadle = icon handle to look for
+ Returns:       pointer to the BarIcon, or NULL if not found.
+ ******************************************************************/
+BarIcon *baricon_find_icon(BarIcon *list, int icon_handle);
+
+#endif

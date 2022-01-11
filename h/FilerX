@@ -8,6 +8,7 @@
 #include "Icon.h"
 #include "Tools.h"
 #include "FSParameters.h"
+#include "BarIcon.h"
 
 #define UNUSED(x) (void)x
 
@@ -34,12 +35,16 @@ extern Icon *icons;
                 and pos will be updated with the icon to create next to
                 or the priority. Pos will be set to the positon io the
                 icobar. These values can be used with Wimp_CreateIcon.
- Parameters:    drive => drive to create the icon far
-                icon  => icon handle or priority
-                pos   => position
- Returns:       Nothing, but *icon and *pos will be updated..
+ Parameters:    fs_list      => list of file sstems
+                baricon_list => list of bar icons
+                fsnumber = fs number to create the icon for
+                drive    = drive to create the icon far
+                icon  => updated with icon handle or priority
+                pos   => updated with position
+ Returns:       Nothing, but *icon and *pos will be updated.
  ******************************************************************/
-void icon_position(Drive *drive, int *pos, int *icon);
+void icon_position(FS *fs_list, BarIcon *baricon_list,
+                   int fsnumber, int drive, int *pos, int *icon);
 
 /*******************************************************************
  Function:      fsdrive_tool_capable
