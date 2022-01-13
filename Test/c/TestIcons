@@ -98,7 +98,7 @@ void test_compare(void)
 
     // Fall back to default
     CHECK_STRING(icon_find(&i1, 192,"Card0"  ,0), "floppydisc");
-    CHECK_STRING(icon_find(&i1,  23,"BigDisc",4), "harddisc"  );
+    CHECK_STRING(icon_find(&i1,  23,"BigDisc",4), "ramfs"  );
 }
 
 void test_list(void)

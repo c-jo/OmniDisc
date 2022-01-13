@@ -13,6 +13,7 @@
 
 /* FSNumbers we care about */
 #define fsnumber_none           0
+#define fsnumber_net            5
 #define fsnumber_ramfs          23
 #define fsnumber_CDFS           37
 #define fsnumber_resourcefs     46
@@ -27,9 +28,10 @@ typedef struct fs_icon_s {
 
 /* Terminate the list with fsnumber = 0, which is the defaults */
 static const fs_icon_t fs_icons[] = {
+    { fsnumber_net,         NULL,           "fileserver" },
     { fsnumber_ramfs,       NULL,           "ramfs" },
-    /* Note: Althuogh the following discs are not FileCore discs, we note their name variants */
-    { fsnumber_resourcefs,  NULL,           "resources" },
+    /* Note: Although the following discs are not FileCore discs, we note their name variants */
+    { fsnumber_resourcefs,  NULL,           "romapps" },
     { fsnumber_CDFS,        NULL,           "cddisc" },
     { fsnumber_ShareFS,     NULL,           "file_bda" },
     { fsnumber_none,        "floppydisc",   "harddisc" },
