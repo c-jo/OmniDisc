@@ -47,6 +47,7 @@ endif
 OBJS       = BarIcon \
              TestBarIcon \
              FS \
+             FSParameters \
              Icon
 
 
