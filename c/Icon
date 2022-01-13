@@ -10,6 +10,55 @@
 #include "fortify.h"
 #endif
 
+
+/* FSNumbers we care about */
+#define fsnumber_none           0
+#define fsnumber_ramfs          23
+#define fsnumber_CDFS           37
+#define fsnumber_resourcefs     46
+#define fsnumber_ShareFS        99
+
+/* A structure that defines which icons to use for each file system */
+typedef struct fs_icon_s {
+    int fsnumber;
+    const char *removeable_icon;  /* NULL if the fixed_icon should always be used */
+    const char *fixed_icon;
+} fs_icon_t;
+
+/* Terminate the list with fsnumber = 0, which is the defaults */
+static const fs_icon_t fs_icons[] = {
+    { fsnumber_ramfs,       NULL,           "ramfs" },
+    /* Note: Althuogh the following discs are not FileCore discs, we note their name variants */
+    { fsnumber_resourcefs,  NULL,           "resources" },
+    { fsnumber_CDFS,        NULL,           "cddisc" },
+    { fsnumber_ShareFS,     NULL,           "file_bda" },
+    { fsnumber_none,        "floppydisc",   "harddisc" },
+};
+
+
+/*******************************************************************
+ Function:      default_fs_icon
+ Description:   Return the default icon to use for a given filing system
+ Parameters:    fsnumber = the filing system number to return details for
+                is_removeable = true to return the removeable variant, or
+                                false to return the fixed variant
+ Returns:       pointer to an icon name to use
+ ******************************************************************/
+static const char *default_fs_icon(int fsnumber, bool is_removeable)
+{
+    const fs_icon_t *icon;
+    for (icon = fs_icons; icon->fsnumber != fsnumber_none; icon++)
+    {
+        if (icon->fsnumber == fsnumber)
+            break;
+    }
+
+    if (is_removeable && icon->removeable_icon != NULL)
+        return icon->removeable_icon;
+    return icon->fixed_icon;
+}
+
+
 static _kernel_oserror err_Memory      = { 0, "Couldn't allocate memory" };
 static _kernel_oserror err_NotFound    = { 0, "Icon not found." };
 static _kernel_oserror err_AlreadySet  = { 0, "Icon already set" };
@@ -243,6 +292,6 @@ const char *icon_find(Icon* list,
     if (s)
         return s;
 
-    return (drive < 4) ? "floppydisc" : "harddisc";
+    return default_fs_icon(fsnumber, (drive < 4) ? true : false);
 }
 
