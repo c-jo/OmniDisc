@@ -45,7 +45,10 @@ endif
 
 # Objects to build, using the format o.<name> (will be varied for build type)
 OBJS       = BarIcon \
-             TestBarIcon
+             TestBarIcon \
+             FS \
+             Icon
+
 
 ifdef BUILD32
 OBJS      := $(OBJS:%=o.%)
