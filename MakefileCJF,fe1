@@ -45,6 +45,8 @@ OBJS       = \
              o.Tools \
              o.FSParameters \
              o.BarIcon \
+             o.FS \
+
 
 FORTIFY   ?= no
 
