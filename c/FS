@@ -1,6 +1,7 @@
 #include "FS.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 /*******************************************************************
  Function:      fs_add
@@ -49,23 +50,25 @@ FS* fs_add(FS *list, fsparameters_t *params, FS** newfs)
  Function:      fs_remove
  Description:   Removes a FS for the given fs_params.
  Parameters:    list   -> current head of the FS list
-                params -> the FS params block for the FS to be removed.
+                fsname -> the name of the FS to remove.
  Returns:       pointer to the new head of the FS list.
  ******************************************************************/
-FS* fs_remove(FS *list, fsparameters_t *params)
+FS* fs_remove(FS *list, const char *fsname, int *removed)
 {
     FS *head = NULL, *last= NULL;
     FS *i = list;
 
+    *removed = 0;
     while (i)
     {
-        if (i->fsparams->fsnumber == params->fsnumber)
+        if (!strcmp(i->fsparams->fsname, fsname))
         {
             FS *d = i;
             i = i->next;
             if (last) last->next = i;
             fsparams_destroy(d->fsparams);
             free(d);
+            ++*removed;
         }
         else
         {
@@ -79,16 +82,31 @@ FS* fs_remove(FS *list, fsparameters_t *params)
 }
 
 /*******************************************************************
- Function:      fs_find
- Description:   Find a FS for the given fs_params.
+ Function:      fs_find_by_number
+ Description:   Find a FS for the given fs number
  Parameters:    list    -> current head of the FS list
-                fsnumber = the FS number to find.
+                fsnumber = the FS number to find
  Returns:       pointer to the FS, or NULL if not found.
  ******************************************************************/
-FS* fs_find(FS *list, int fsnumber)
+FS* fs_find_by_number(FS *list, int fsnumber)
 {
     for (; list; list=list->next)
         if (list->fsparams->fsnumber == fsnumber)
+            break;
+    return list;
+}
+
+/*******************************************************************
+ Function:      fs_find_by_name
+ Description:   Find a FS for the given name.
+ Parameters:    list   -> current head of the FS list
+                fsname -> name of the FS to find
+ Returns:       pointer to the FS, or NULL if not found.
+ ******************************************************************/
+FS* fs_find_by_name(FS *list, const char *fsname)
+{
+    for (; list; list=list->next)
+        if (!strcmp(list->fsparams->fsname, fsname)) // **FIXME** stricmp
             break;
     return list;
 }

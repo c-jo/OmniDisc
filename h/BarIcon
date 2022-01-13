@@ -22,9 +22,6 @@ int  baricon_create_icon(char *text, char *validation, int buffer_size,
 
 void baricon_delete_icon(int handle);
 
-void baricon_redraw_icon(int);
-void baricon_resize_icon(int, char*, char*);
-
 void baricon_update_icon(int handle,
                          char* new_text, char* new_validation);
 

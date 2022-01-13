@@ -1,26 +1,22 @@
 #include "BarIcon.h"
 #include "Icon.h"
 
-//#include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 
 #include "swis.h"
 
-static void *rma_alloc(size_t size)
+static void *rmalloc(size_t size)
 {
     void *ptr;
     if  (_swix(OS_Module, _IN(0)|_IN(3)|_OUT(2), 6, size, &ptr)) return 0;
     return ptr;
 }
 
-static void rma_free(void *ptr)
+static void rmfree(void *ptr)
 {
     _swix(OS_Module, _IN(0)|_IN(2), 7, ptr);
 }
-
-#define malloc  rma_alloc
-#define free    rma_free
 
 /*******************************************************************
  Function:      baricon_position
@@ -107,7 +103,7 @@ BarIcon *baricon_update(BarIcon *list, FS* fslist, Icon *iconlist)
     /* Remove any icons for drives that no longer exist */
     while (bi)
     {
-        fs = fs_find(fslist, bi->fsnumber);
+        fs = fs_find_by_number(fslist, bi->fsnumber);
 
         if (!fs || fs->drive[bi->drive].discname[0] == '\0')
         {
@@ -124,7 +120,7 @@ BarIcon *baricon_update(BarIcon *list, FS* fslist, Icon *iconlist)
 
             // Delete this one
             baricon_delete_icon(d->handle);
-            free(d);
+            rmfree(d);
         }
         else
         {
@@ -144,7 +140,7 @@ BarIcon *baricon_update(BarIcon *list, FS* fslist, Icon *iconlist)
                 if (!baricon_find(list, fs->fsparams->fsnumber, n))
                 {
                    int window, priority;
-                    BarIcon *icon = malloc(sizeof(BarIcon));
+                    BarIcon *icon = rmalloc(sizeof(BarIcon));
 
                     icon->fsnumber = fs->fsparams->fsnumber;
                     icon->drive    = n;
@@ -152,7 +148,7 @@ BarIcon *baricon_update(BarIcon *list, FS* fslist, Icon *iconlist)
 
                     icon->validation[0] = 'S';
                     strncpy((icon->validation)+1,
-                             icon_find(iconlist, fs->fsparams->fsname,
+                             icon_find(iconlist, fs->fsparams->fsnumber,
                                        fs->drive[n].discname, n), 13);
 
                     baricon_position(fslist, list, fs->fsparams->fsnumber, n,
@@ -183,27 +179,30 @@ void baricon_refresh(BarIcon *list, FS* fslist, Icon *iconlist)
     BarIcon *icon;
     for (icon = list; icon; icon=icon->next)
     {
-        FS *fs = fs_find(fslist, icon->fsnumber);
+        FS *fs = fs_find_by_number(fslist, icon->fsnumber);
         const char *new_sprite;
-        char *discname = fs ? fs->drive[icon->drive].discname : NULL;
+        char *text = NULL,  *validation = NULL;
+        char *discname = fs ? fs->drive[icon->drive].discname : "\0";
 
         if (!fs || discname[0] == '\0')
             continue;
 
-        new_sprite = icon_find(iconlist, fs->fsparams->fsname,
+        new_sprite = icon_find(iconlist, fs->fsparams->fsnumber,
                                discname, icon->drive);
 
-        if (strcmp(icon->validation, new_sprite))
+        if (strcmp(icon->validation+1, new_sprite))
         {
             strncpy((icon->validation)+1, new_sprite, 13);
-            baricon_redraw_icon(icon->handle);
+            validation = icon->validation;
         }
 
         if (strcmp(icon->text, discname))
         {
-            strncpy((icon->validation)+1, new_sprite, 13);
-            baricon_resize_icon(icon->handle, icon->text, icon->validation);
+            strncpy(icon->text, discname, 11);
+            text = icon->text;
         }
+
+        baricon_update_icon(icon->handle, text, validation);
     }
 }
 

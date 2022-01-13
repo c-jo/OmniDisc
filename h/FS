@@ -48,11 +48,13 @@ FS* fs_add(FS *list, fsparameters_t *paams, FS **newfs);
 /*******************************************************************
  Function:      fs_remove
  Description:   Removes a FS for the given fs_params.
- Parameters:    list   -> current head of the FS list
-                params -> the FS params block for the FS to be removed.
+ Parameters:    list    -> current head of the FS list
+                fsname  -> the name of the FS to remove.
+                removed -> updatedw with the number of entries removed
+                           (should be 0 or 1)
  Returns:       pointer to the new head of the FS list.
  ******************************************************************/
-FS* fs_remove(FS *list, fsparameters_t *params);
+FS* fs_remove(FS *list, const char *fsname, int *removed);
 
 /*******************************************************************
  Function:      fs_find
@@ -61,6 +63,8 @@ FS* fs_remove(FS *list, fsparameters_t *params);
                 fsnumber = the FS number to find.
  Returns:       pointer to the FS, or NULL if not found.
  ******************************************************************/
-FS* fs_find(FS *list, int fsnumber);
+FS* fs_find_by_number(FS *list, int fsnumber);
+
+FS* fs_find_by_name(FS *list, const char *fsname);
 
 #endif // FS_H

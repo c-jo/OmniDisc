@@ -2,49 +2,52 @@
 #include <stddef.h>
 #include <assert.h>
 
+#include "Test.h"
 #include "Icon.h"
+
+#define SHOW_PASS 0
 
 void test_match(void)
 {
     Icon i1;
 
     // Should match any ADFS drive
-    strcpy(i1.fs,    "ADFS");
-    strcpy(i1.disc,  "");
     strcpy(i1.sprite,"test1");
-    i1.drive  = -1;
-    i1.floppy = true;
-    i1.winnie = true;
+    i1.fsnumber = 8;
+    strcpy(i1.disc,  "");
+    i1.drives  = 0xff;
 
-    assert(icon_match(&i1,"ADFS","HardDisc4" ,4)  > 0);
-    assert(icon_match(&i1,"adfs","HARDDISC4" ,4)  > 0);
-    assert(icon_match(&i1,"ADFS","14_14_Fri" ,0)  > 0);
-    assert(icon_match(&i1,"Adfs",""          ,1)  > 0);
-    assert(icon_match(&i1,"SCSI","Thumbdrive",0) == 0);
-    assert(icon_match(&i1,"SDFS","CardOne"   ,4) == 0);
+    CHECK_GT(icon_match(&i1, 8, "HardDisc4" ,4), 0);
+    CHECK_GT(icon_match(&i1, 8, "HARDDISC4" ,4), 0);
+    CHECK_GT(icon_match(&i1, 8, "14_14_Fri" ,0), 0);
+    CHECK_GT(icon_match(&i1, 8, ""          ,1), 0);
+
+    CHECK_EQ(icon_match(&i1, 26, "Thumbdrive",0), 0);
+    CHECK_EQ(icon_match(&i1, 26, "CardOne"   ,4), 0);
 
     // Match hard drives only
-    i1.floppy = false;
-    assert(icon_match(&i1,"ADFS","HardDisc4",4 )  > 0);
-    assert(icon_match(&i1,"ADFS","14_14_Fri",0) == 0);
-    i1.floppy = true;
+    i1.drives = 0xf0;
+    CHECK_GT(icon_match(&i1,8,"HardDisc4",4), 0);
+    CHECK_EQ(icon_match(&i1,8,"14_14_Fri",0), 0);
 
     // Match floppy discs only
-    i1.winnie = false;
-    assert(icon_match(&i1,"ADFS","HardDisc4",4) == 0);
-    assert(icon_match(&i1,"ADFS","14_14_Fri",0)  > 0);
-    i1.winnie = true;
+    i1.drives = 0x0f;
+    CHECK_EQ(icon_match(&i1,8,"HardDisc4",4), 0);
+    CHECK_GT(icon_match(&i1,8,"14_14_Fri",0), 0);
+
+    i1.drives = 0xff;
 
     // Match a disc name
     strcpy(i1.disc, "15_30_Tue");
-    assert(icon_match(&i1,"ADFS","HardDisc4",4) == 0);
-    assert(icon_match(&i1,"adfs","15_30_Tue",0)  > 0);
+    CHECK_EQ(icon_match(&i1, 8,"HardDisc4",4), 0);
+    CHECK_GT(icon_match(&i1, 8,"15_30_Tue",0), 0);
+    CHECK_EQ(icon_match(&i1,26,"15_30_Tue",0), 0);
 
     // Match a drive number
     strcpy(i1.disc, "");
-    i1.drive = 4;
-    assert(icon_match(&i1,"ADFS","HardDisc4",4)  > 0);
-    assert(icon_match(&i1,"adfs","15_30_Tue",0) == 0);
+    i1.drives = 1<<4;
+    CHECK_GT(icon_match(&i1,8,"HardDisc4",4), 0);
+    CHECK_EQ(icon_match(&i1,8,"15_30_Tue",0), 0);
 }
 
 void test_compare(void)
@@ -55,102 +58,96 @@ void test_compare(void)
     i3.next = &i4;
     i4.next = NULL;
 
-    // Should match any ADFS drive
-    strcpy(i1.fs,    "ADFS");
-    strcpy(i1.disc,  "");
+    // any ADFS drive
     strcpy(i1.sprite,"test1");
-    i1.drive  = -1;
-    i1.floppy = true;
-    i1.winnie = true;
+    i1.fsnumber = 8;
+    strcpy(i1.disc,  "");
+    i1.drives = -1;
 
-    // A given  drive number
-    strcpy(i2.fs,    "ADFS");
-    strcpy(i2.disc,  "");
+    // A given drive number
     strcpy(i2.sprite,"test2");
-    i2.drive  = 4;
-    i2.floppy = true;
-    i2.winnie = true;
+    i2.fsnumber = 8;
+    strcpy(i2.disc,  "");
+    i2.drives = 1<<4;
 
     // A given disc name
-    strcpy(i3.fs,    "ADFS");
-    strcpy(i3.disc,  "HardDisc4");
     strcpy(i3.sprite,"test3");
-    i3.drive  = -1;
-    i3.floppy = true;
-    i3.winnie = true;
+    i3.fsnumber = 8;
+    strcpy(i3.disc,  "HardDisc4");
+    i3.drives = -1;
 
     // A given disc name and drive number
-    strcpy(i4.fs,    "ADFS");
-    strcpy(i4.disc,  "HardDisc4");
     strcpy(i4.sprite,"test4");
-    i4.drive  = 4;
-    i4.floppy = true;
-    i4.winnie = true;
+    i4.fsnumber = 8;
+    strcpy(i4.disc,  "HardDisc4");
+    i4.drives = 1<<4;
 
     // A name match should be higher than drive number one
-    assert(icon_match(&i3,"ADFS","HardDisc4",4) >
-           icon_match(&i2,"ADFS","HardDisc4",4));
+    assert(icon_match(&i3, 8, "HardDisc4", 4) >
+           icon_match(&i2, 8, "HardDisc4", 4));
 
     // A drive match is higher than a FS one
-    assert(icon_match(&i2,"ADFS","HardDisc4",4) >
-           icon_match(&i1,"ADFS","HardDisc4",4));
+    assert(icon_match(&i2, 8, "HardDisc4", 4) >
+           icon_match(&i1, 8, "HardDisc4", 4));
 
     // Find an icon
-    assert(!strcmp(icon_find(&i1, "ADFS","03_04_Mon",2), "test1"));
-    assert(!strcmp(icon_find(&i1, "ADFS","Winnie4"  ,4), "test2"));
-    assert(!strcmp(icon_find(&i1, "ADFS","HardDisc4",5), "test3"));
-    assert(!strcmp(icon_find(&i1, "ADFS","HardDisc4",4), "test4"));
+    CHECK_STRING(icon_find(&i1, 8, "03_04_Mon",2), "test1");
+    CHECK_STRING(icon_find(&i1, 8, "Winnie4"  ,4), "test2");
+    CHECK_STRING(icon_find(&i1, 8, "HardDisc4",5), "test3");
+    CHECK_STRING(icon_find(&i1, 8, "HardDisc4",4), "test4");
 
     // Fall back to default
-    assert(!strcmp(icon_find(&i1, "SDFS","Card0"  ,0), "floppydisc"));
-    assert(!strcmp(icon_find(&i1, "SCSI","BigDisc",4), "harddisc"  ));
+    CHECK_STRING(icon_find(&i1, 192,"Card0"  ,0), "floppydisc");
+    CHECK_STRING(icon_find(&i1,  23,"BigDisc",4), "harddisc"  );
 }
 
 void test_list(void)
 {
     Icon *icons = 0;
-    icons = icon_add(icons, "harddisc", "ADFS", "HardDisc4", 4);
-    assert(icons != 0);
-    assert(icons->next == 0);
-    assert(!strcmp(icons->fs,    "ADFS"));
-    assert(!strcmp(icons->disc,  "HardDisc4"));
-    assert(!strcmp(icons->sprite,"harddisc"));
+    // Add one
+    CHECK_ERROR(icon_add(&icons, "harddisc", 8, "HardDisc4", "4"));
+    CHECK_NOT_NULL(icons);
+    CHECK_IS_NULL(icons->next);
 
-    icons = icon_add(icons, "harddisc", "ADFS", "HardDisc5", 5);
-    assert(icons->next != 0);
-    assert(!strcmp(icons->disc, "HardDisc4"));
-    assert(!strcmp(icons->next->disc, "HardDisc5"));
-    assert(icons->next->next == 0);
+    CHECK_EQ(icons->fsnumber, 8);
+    CHECK_STRING(icons->disc,  "HardDisc4");
+    CHECK_STRING(icons->sprite,"harddisc");
 
-    icons = icon_remove(icons, "ADFS", "HardDisc4", 4);
-    assert(icons != 0);
-    assert(icons->next == 0);
-    assert(!strcmp(icons->fs,    "ADFS"));
-    assert(!strcmp(icons->disc,  "HardDisc5"));
-    assert(!strcmp(icons->sprite,"harddisc"));
+    // Add another
+    CHECK_ERROR(icon_add(&icons, "harddisc", 8, "HardDisc5", "5"));
+    CHECK_NOT_NULL(icons->next);
+    CHECK_IS_NULL(icons->next->next);
+    CHECK_STRING(icons->disc,       "HardDisc4");
+    CHECK_STRING(icons->next->disc, "HardDisc5");
+    CHECK_EQ(icons->next->drives, 1<<5);
 
-    icons = icon_remove(icons, "ADFS", "HardDisc4", 4);
-    assert(icons != 0);
-    assert(!strcmp(icons->disc, "HardDisc5"));
+    // this should be an error
+    CHECK_NOT_NULL(icon_add(&icons, "harddisc", 8, "HardDisc5", "5"));
 
-    icons = icon_add(icons, "harddisc", "ADFS", "HardDisc6", 6);
-    icons = icon_remove(icons, "ADFS", "HardDisc6", 6);
-    assert(icons != 0);
-    assert(icons->next == 0);
-    assert(!strcmp(icons->disc, "HardDisc5"));
-}
+    // Remove it
+    CHECK_ERROR(icon_remove(&icons, "harddisc", 8, "HardDisc5", "5"));
+    CHECK_NOT_NULL(icons);
+    CHECK_IS_NULL(icons->next);
+    CHECK_EQ(icons->fsnumber, 8);
+    CHECK_STRING(icons->disc,  "HardDisc4");
+    CHECK_STRING(icons->sprite,"harddisc");
 
-void test_command(void)
-{
-    Icon *icons = 0;
-    assert(0 == icon_command(&icons, "-fs ADFS -disc HardDisc4 switcher"));
-    assert(icons != 0);
-    assert(!strcmp(icons->fs,    "ADFS"));
-    assert(!strcmp(icons->disc,  "HardDisc4"));
-    assert(!strcmp(icons->sprite,"switcher"));
-    assert(icons->floppy == true);
-    assert(icons->winnie == true);
-    assert(icons->drive  == -1);
+    // this should be an error
+    CHECK_NOT_NULL(icon_remove(&icons, "harddisc", 8, "HardDisc5", "5"));
+
+    CHECK_ERROR(icon_add(&icons, "harddisc", 8,  "HardDisc6", "6"));
+    CHECK_ERROR(icon_add(&icons, "switcher", 8,  "HardDisc7", "7"));
+    CHECK_ERROR(icon_add(&icons, "file_fff", 23, "SCSIdisc",  "4"));
+
+    icon_remove_fs(&icons, 8);
+
+    CHECK_NOT_NULL(icons);
+    CHECK_EQ(icons->fsnumber, 23);
+
+    CHECK_ERROR(icon_add(&icons, "harddisc", 8, "NewHD", "4567"));
+    CHECK_NOT_NULL(icons);
+    CHECK_NOT_NULL(icons->next);
+    CHECK_EQ(icons->next->drives, 0xf0);
 }
 
 int main(void)
@@ -158,6 +155,5 @@ int main(void)
     test_match();
     test_compare();
     test_list();
-    test_command();
     return 0;
 }

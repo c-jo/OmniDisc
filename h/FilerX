@@ -10,7 +10,7 @@
 #include "FSParameters.h"
 #include "BarIcon.h"
 
-#define UNUSED(x) (void)x
+#define UNUSED(x) (void)x;
 
 char *strdup(const char *src);
 
