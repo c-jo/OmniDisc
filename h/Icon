@@ -5,12 +5,12 @@
 #include "kernel.h"
 
 typedef struct Icon_s {
+    struct Icon_s *next;
+
     char sprite[14];      // Sprite name
     int fsnumber;         // file system number, or -1 for any
     char disc[12];        // Disc nane, or empty string for any
     unsigned int drives;  // Bitmask of drives (b0 = :1..b7 = :7)
-
-    struct Icon_s *next;
 } Icon;
 
 

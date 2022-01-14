@@ -6,14 +6,14 @@
 
 typedef struct BarIcon_s
 {
+    struct BarIcon_s *prev;
+    struct BarIcon_s *next;
+
     int  fsnumber;
     int  drive;
     char text[12];
     char validation[16];
     int  handle;
-
-    struct BarIcon_s *prev;
-    struct BarIcon_s *next;
 } BarIcon;
 
 /* provided elsewhere */
