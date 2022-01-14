@@ -30,8 +30,8 @@ jobs:
       - amu -f MakefileTestIcons
       - amu -f MakefileTestBarIcon
       - amu -f MakefileTestFS
-      - dir ^
       - amu -f MakefileTestTools
+      - dir ^
 
       # Run the tests (which should at least not crash)
       - dir Test
@@ -43,9 +43,9 @@ jobs:
       - /aif32.TestBarIcon
       - echo + Test FS management
       - /aif32.TestFS
-      - dir ^
       - echo + Test tool operations
       - /aif32.TestTools
+      - dir ^
 
       # Build the module
       - echo +++ Module

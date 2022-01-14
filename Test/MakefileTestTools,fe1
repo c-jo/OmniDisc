@@ -2,6 +2,8 @@
 # Makefile for testtools
 #
 
+VPATH = @ ^.
+
 #
 # Program specific options:
 #
@@ -24,7 +26,7 @@ TYPE       = aif
 
 # Comma-separated list of paths to use for includes, such as:
 #	<Lib$Dir>.LibName.
-INCLUDES   =
+INCLUDES   = ^.
 
 # Space separated list of defines to set, eg -DDEBUG
 CDEFINES   = -DNO_STDBOOL
