@@ -25,12 +25,12 @@ typedef struct
 
 typedef struct FS_s
 {
+    struct FS_s *next;
+
     fsparameters_t *fsparams;
 
     bool      fd_names;
     Drive     drive[8];
-
-    struct FS_s *next;
 } FS;
 
 /*******************************************************************
