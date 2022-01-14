@@ -1,0 +1,274 @@
+#include "Commands.h"
+#include "FilerX.h"
+
+#include "swis.h"
+
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+
+
+static _kernel_oserror err_no_memory  = { 0, "No memory" };
+static _kernel_oserror err_cannot_add = { 0, "Cannot add filing system registration" };
+static _kernel_oserror err_FS_Already_Registered = { 0, "Filing system already registered." };
+static _kernel_oserror err_FS_Not_Registered = { 0, "Filing system not registered." };
+
+/*******************************************************************
+ Function:      cmd_desktop
+ Description:   Handle the Desktop_FilerX command
+ Parameters:    arg_string -> the command arguments
+ Returns:       pointer to error, or NULL if successful
+ ******************************************************************/
+_kernel_oserror*cmd_desktop(const char* arg_string, const char *module)
+{
+    if (task_handle == 0 || task_handle == -1)
+    {
+        return _swix(OS_Module, _INR(0,2), 2, module, arg_string);
+    }
+    return 0;
+}
+
+/*******************************************************************
+ Function:      add_fs
+ Description:   Adds the given FS
+ Parameters:    fsname  -> name of the FS
+                fd_names = true if names of floppy discs should be
+                under their icon, false for :n
+ Returns:       pointer to error, or NULL if successful
+ ******************************************************************/
+static _kernel_oserror* add_fs(const char *fsname, bool fd_names)
+{
+    FS *newfs = NULL;
+
+    if (fs_find_by_name(fses, fsname) != NULL)
+        return &err_FS_Already_Registered;
+
+    fsparameters_t *fsparams = fsparams_create(fsname);
+    if (fsparams == NULL)
+        return &err_cannot_add; /* Not ideal - we cannot differentiate memory and FS problems */
+
+    fses = fs_add(fses, fsparams, &newfs);
+    if (newfs == NULL)
+        return &err_no_memory;
+
+    newfs->fd_names = fd_names;
+    find_drives(newfs);
+
+    return 0;
+}
+
+/*******************************************************************
+ Function:      remove_fs
+ Description:   Removes the given FS
+ Parameters:    fsname  -> name of the FS
+ Returns:       pointer to error, or NULL if successful
+ ******************************************************************/
+static _kernel_oserror* remove_fs(const char *fsname)
+{
+    int removed = 0;
+    fses = fs_remove(fses, fsname, &removed);
+    if (removed == 0)
+        return &err_FS_Not_Registered;
+
+    pollword |= Pollword_Drive;
+    return 0;
+}
+
+/*******************************************************************
+ Function:      list_fs
+ Description:   Prints the registered filing systems.
+ Parameters:    None
+ Returns:       pointer to error, or NULL if successful
+ ******************************************************************/
+static _kernel_oserror* list_fs(void)
+{
+    FS *fs;
+    if (!fses)
+    {
+        puts("No file systems registered.");
+        return 0;
+    }
+
+    printf("%-10s %3s %s\n", "Name", "Num","Drives");
+
+    for (fs = fses; fs; fs=fs->next)
+    {
+        int n;
+        printf("%-10s %3d", fs->fsparams->fsname, fs->fsparams->fsnumber);
+        for (n=0;n<8;++n)
+        {
+            char *discname = fs->drive[n].discname;
+            if (discname[0] != '\0')
+            {
+                if (discname[0] == ':')
+                    discname = "";
+                printf(" %u:%s", n, discname);
+            }
+        }
+        puts("");
+    }
+    return 0;
+}
+
+/*******************************************************************
+ Function:      cmd_fs
+ Description:   Handle the FilerX_FS command
+ Parameters:    arg_string -> the command arguments
+ Returns:       pointer to error, or NULL if successful
+ ******************************************************************/
+_kernel_oserror*cmd_fs(const char* arg_string)
+{
+    size_t bufsize = 26+strlen(arg_string);
+    static struct {
+        char *add;
+        char *remove;
+        int   list;
+        int   fdnames;
+    }  *readargs_fs;
+    _kernel_oserror *e = 0;
+
+    readargs_fs =  malloc(bufsize);
+
+    e = _swix(OS_ReadArgs, _INR(0,3),
+                  "add/K,remove/K,list/S,fdnames/S",
+                  arg_string, readargs_fs, bufsize);
+
+    if (!e && readargs_fs->add)
+        e = add_fs(readargs_fs->add, readargs_fs->fdnames ? true : false);
+    if (!e && readargs_fs->remove)
+        e = remove_fs(readargs_fs->remove);
+    if (!e && readargs_fs->list)
+        e = list_fs();
+
+    return e;
+}
+
+/*******************************************************************
+ Function:      add_icon
+ Description:   Adds an icon.
+ Parameters:    sprite-> name of sprite in Wimp area
+                fsname-> name of FS
+                disc  -> disc name or NULL
+                drive -> drives string or NULL
+ Returns:       pointer to error, or NULL if successful
+ ******************************************************************/
+static _kernel_oserror *add_icon(const char *sprite,
+                const char *fsname, const char *disc, const char *drives)
+{
+   // Check the sprite exists
+    _kernel_oserror *e = _swix(Wimp_SpriteOp, _IN(0)|_IN(2), 40, sprite);
+    if (e)
+        return e;
+
+    FS *fs = fs_find_by_name(fses, fsname);
+    if (!fs)
+        return &err_FS_Not_Registered;
+
+    return icon_add(&icons, sprite, fs->fsparams->fsnumber, disc, drives);
+}
+
+/*******************************************************************
+ Function:      remove_icon
+ Description:   Removes an icon.
+ Parameters:    sprite-> name of sprite in Wimp area
+                fsname-> name of FS
+                disc  -> disc name or NULL
+                drive -> drives string or NULL
+ Returns:       pointer to error, or NULL if successful
+ ******************************************************************/
+static _kernel_oserror *remove_icon(const char *icon,
+                const char *fsname, const char *disc, const char *drive)
+{
+    FS *fs = fs_find_by_name(fses, fsname);
+    if (!fs)
+        return &err_FS_Not_Registered;
+
+    return icon_remove(&icons, icon, fs->fsparams->fsnumber, disc, drive);
+}
+
+/*******************************************************************
+ Function:      list_icons
+ Description:   Prints the current icons.
+ Parameters:    None
+ Returns:       pointer to error, or NULL if successful
+ ******************************************************************/
+static _kernel_oserror *list_icons(void)
+{
+    Icon *icon;
+    const char *fmt = "%-12s %-10s %-10s %-8s\n";
+    printf(fmt, "Sprite", "FS", "Disc", "Drives");
+    for (icon = icons; icon; icon=icon->next)
+    {
+        const char *fsname, *discname;
+        char drives[10];
+        if (icon->fsnumber == -1)
+            fsname = "<ANY>";
+        else
+        {
+            FS *fs = fs_find_by_number(fses, icon->fsnumber);
+            if (!fs)
+                fsname = "<UNKNOWN>";
+            else
+                fsname = fs->fsparams->fsname;
+        }
+
+        if (icon->disc[0] == '\0')
+            discname = "<ANY>";
+        else
+            discname = icon->disc;
+
+        if (icon->drives != -1)
+        {
+            char *c = drives;
+            int n;
+            for (n=0; n<8; ++n)
+            {
+                if (icon->drives & 1<<n)
+                {
+                    *c++ = '0'+n;
+                }
+            }
+            *c = 0;
+        }
+
+        printf(fmt, icon->sprite, fsname, discname,
+                    icon->drives == -1 ? "<NNY>": drives);
+    }
+    return 0;
+}
+
+/*******************************************************************
+ Function:      cmd_icon
+ Description:   Handle the FilerX_Icon command
+ Parameters:    arg_string -> the command arguments
+ Returns:       pointer to error, or NULL if successful
+******************************************************************/
+_kernel_oserror*cmd_icon(const char* arg_string)
+{
+    size_t bufsize = 24+strlen(arg_string);
+    static struct {
+        char *add;
+        char *remove;
+        int   list;
+        char *fs;
+        char *disc;
+        char *drive;
+    }  *readargs_icon;
+    _kernel_oserror *e = 0;
+
+    readargs_icon = malloc(bufsize);
+
+    e = _swix(OS_ReadArgs, _INR(0,3),
+                  "add/K,remove/K,list/S,fs/K,disc/K,drives/K",
+                  arg_string, readargs_icon, bufsize);
+
+    if (!e && readargs_icon->add)
+        e = add_icon(readargs_icon->add, readargs_icon->fs, readargs_icon->disc, readargs_icon->drive);
+    if (!e && readargs_icon->remove)
+        e =remove_icon(readargs_icon->remove, readargs_icon->fs, readargs_icon->disc, readargs_icon->drive);
+    if (!e && readargs_icon->list)
+        e = list_icons();
+
+    free(readargs_icon);
+    return e;
+}

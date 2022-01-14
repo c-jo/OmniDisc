@@ -9,7 +9,8 @@ OBJS        = FilerX \
 			  Tools \
 			  FS \
 			  FSParameters \
-			  BarIcon
+			  BarIcon \
+			  Commands
 
 CMHGDEPENDS = FilerX
 CUSTOMRES   = no
