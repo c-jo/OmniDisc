@@ -43,6 +43,7 @@ OBJS       = \
              o.FindDrives \
              o.Icon \
              o.Tools \
+             o.FS \
              o.FSParameters \
              o.BarIcon \
              o.Commands \

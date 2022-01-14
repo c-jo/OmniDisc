@@ -101,7 +101,6 @@ static void remove_drive(FS *fs, int drive)
 
 void find_drives(FS *fs)
 {
-    printf("Finding drives for %s\n",fs->fsparams->fsname);
     unsigned long flags = FFMD_REPORT_REMOVABLE | FFMD_REPORT_FIXED | FFMD_NAME_FIXED;
     if (fs->fd_names)
         flags |= FFMD_NAME_REMOVABLE;

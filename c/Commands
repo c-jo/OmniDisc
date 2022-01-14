@@ -7,7 +7,6 @@
 #include <string.h>
 #include <stdio.h>
 
-
 static _kernel_oserror err_no_memory  = { 0, "No memory" };
 static _kernel_oserror err_cannot_add = { 0, "Cannot add filing system registration" };
 static _kernel_oserror err_FS_Already_Registered = { 0, "Filing system already registered." };
@@ -39,11 +38,12 @@ _kernel_oserror*cmd_desktop(const char* arg_string, const char *module)
 static _kernel_oserror* add_fs(const char *fsname, bool fd_names)
 {
     FS *newfs = NULL;
+    fsparameters_t *fsparams;
 
     if (fs_find_by_name(fses, fsname) != NULL)
         return &err_FS_Already_Registered;
 
-    fsparameters_t *fsparams = fsparams_create(fsname);
+    fsparams = fsparams_create(fsname);
     if (fsparams == NULL)
         return &err_cannot_add; /* Not ideal - we cannot differentiate memory and FS problems */
 
@@ -155,12 +155,15 @@ _kernel_oserror*cmd_fs(const char* arg_string)
 static _kernel_oserror *add_icon(const char *sprite,
                 const char *fsname, const char *disc, const char *drives)
 {
-   // Check the sprite exists
-    _kernel_oserror *e = _swix(Wimp_SpriteOp, _IN(0)|_IN(2), 40, sprite);
+    // Check the sprite exists
+    _kernel_oserror *e;
+    FS *fs;
+
+    e = _swix(Wimp_SpriteOp, _IN(0)|_IN(2), 40, sprite);
     if (e)
         return e;
 
-    FS *fs = fs_find_by_name(fses, fsname);
+    fs = fs_find_by_name(fses, fsname);
     if (!fs)
         return &err_FS_Not_Registered;
 
