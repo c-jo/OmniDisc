@@ -40,7 +40,8 @@ FS* fs_add(FS *list, fsparameters_t *params, FS** newfs)
     }
 
     fs  ->next = NULL;
-    last->next = fs;
+    if (last)
+        last->next = fs;
 
     *newfs = fs;
     return list ? list : fs;
