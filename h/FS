@@ -43,14 +43,14 @@ typedef struct FS_s
                 newfs  -> pointer to update with the new FS, or NULL
  Returns:       pointer to the new head of the FS list.
  ******************************************************************/
-FS* fs_add(FS *list, fsparameters_t *paams, FS **newfs);
+FS* fs_add(FS *list, fsparameters_t *params, FS **newfs);
 
 /*******************************************************************
  Function:      fs_remove
  Description:   Removes a FS for the given fs_params.
  Parameters:    list    -> current head of the FS list
                 fsname  -> the name of the FS to remove.
-                removed -> updatedw with the number of entries removed
+                removed -> updated with the number of entries removed
                            (should be 0 or 1)
  Returns:       pointer to the new head of the FS list.
  ******************************************************************/

@@ -29,6 +29,7 @@ jobs:
       - amu -f MakefileTestFindDrives
       - amu -f MakefileTestIcons
       - amu -f MakefileTestBarIcon
+      - amu -f MakefileTestFS
       - dir ^
       - amu -f MakefileTestTools
 
@@ -40,6 +41,8 @@ jobs:
       - /aif32.TestIcons
       - echo + Test iconbar
       - /aif32.TestBarIcon
+      - echo + Test FS management
+      - /aif32.TestFS
       - dir ^
       - echo + Test tool operations
       - /aif32.TestTools

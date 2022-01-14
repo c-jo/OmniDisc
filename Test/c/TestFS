@@ -16,10 +16,9 @@ void test_list(void)
 {
     FS *fs_list = NULL;
     FS *newfs1, *newfs2;
-    fsparameters_t fsp1;
-    fsparameters_t fsp2;
-    fsp1.fsnumber = 8;
-    fsp1.fsnumber = 26;
+    int removed;
+    fsparameters_t fsp1 = { "ADFS", "ADFS", 8 };
+    fsparameters_t fsp2 = { "RamFS", "RAMFS", 23 };
 
     fs_list = fs_add(fs_list, fsp_dup(&fsp1), &newfs1);
     assert(fs_list != NULL);
@@ -32,15 +31,17 @@ void test_list(void)
     assert(fs_list == newfs1);
     assert(fs_list->next == newfs2);
 
-    fs_list = fs_remove(fs_list, &fsp1);
+    fs_list = fs_remove(fs_list, "ADFS", &removed);
     assert(fs_list == newfs2);
     assert(fs_list->next == NULL);
+    assert(removed == 1);
 
     fs_list = fs_add(fs_list, fsp_dup(&fsp1), &newfs1);
     assert(fs_list->next == newfs1);
 
-    fs_list = fs_remove(fs_list, &fsp2);
+    fs_list = fs_remove(fs_list, "RAMFS", &removed);
     assert(fs_list == newfs1);
+    assert(removed == 1);
 }
 
 int main(void)
