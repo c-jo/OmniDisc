@@ -46,8 +46,6 @@ static struct drive_menu_s
     WimpMenuItem more[9];
 } drive_menu;
 
-static WimpMenuItem *share_item = 0;
-
 static struct
 {
     int fsnumber, drive;
@@ -327,6 +325,7 @@ static void mouse_click(WimpMouseClickEvent *event)
         menu_drive.drive    = drive;
         menu_drive.x        = event->mouse_x;
         menu_drive.y        = event->mouse_y;
+        WimpMenuItem *share = &((WimpMenu*)&drive_menu)->items[menuitem_share];
 
         if (event->window_handle == WimpWindow_Iconbar)
         {
@@ -348,10 +347,10 @@ static void mouse_click(WimpMouseClickEvent *event)
                  else
                      items[n].flags &= ~WimpMenuItem_Ticked;
             }
-            share_item->icon_flags &= ~WimpIcon_Shaded;
+            share->icon_flags &= ~WimpIcon_Shaded;
         }
         else
-            share_item->icon_flags |=  WimpIcon_Shaded;
+            share->icon_flags |=  WimpIcon_Shaded;
 
         menu_update(fs, drive);
         _swi(Wimp_CreateMenu, _INR(1,3), &drive_menu, menu_drive.x, menu_drive.y);
