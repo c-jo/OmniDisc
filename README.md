@@ -37,8 +37,11 @@ Sets the icon to use for the specified drives. The -fs, -disc and -drives are op
 
 The drives list is a string of drives to apply the icon to. eg '45' would match drives 4 and 5, '0123' would match all the 'floppy' discs.
 
+- *FilerX_Icon -add <sprite> (-fs <fsname>) (-disc <discname>) (-drives <drives list>)
 
-- *FilerX_Icon -remove <sprite> (-fs <fsname>) (-disc <discname>) (-drives <drives list>)
+Updates an icon added with *FilerX_Icon add.
+
+- *FilerX_Icon -remove (-fs <fsname>) (-disc <discname>) (-drives <drives list>)
 
 Removes an icon added wih *FilerX_Icon -add
 

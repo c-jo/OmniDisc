@@ -20,11 +20,11 @@ typedef struct Icon_s {
                 sprite  -> name of the sprite to use
                 fsnumber = filing system number, or -1 for any
                 disc    -> disc name, or NULL for any
-                drive   -> drive number(s) string, or NULL for any
+                drives   = drive map, or -1
  Returns:       error or NULL
  ******************************************************************/
 _kernel_oserror *icon_add(Icon** list, const char *sprite,
-                     int fsnumber, const char *disc, const char *drive);
+                     int fsnumber, const char *disc, int drives);
 
 /*******************************************************************
  Function:      icon_remove
@@ -34,11 +34,23 @@ _kernel_oserror *icon_add(Icon** list, const char *sprite,
  Parameters:    list  ->-> list to update
                 fsnumber = filing system number, or -1 for any
                 disc    -> the name of the disc, or NULL
-                drive   -> drive number(s) string, or NULL
+                drives   = drive map, or -1
  Returns:       error or NULL
  ******************************************************************/
-_kernel_oserror *icon_remove(Icon **list, const char *sprite,
-                      int fsnumber, const char *disc, const char *drive);
+_kernel_oserror *icon_remove(Icon **list,
+                      int fsnumber, const char *disc, int drives);
+
+/*******************************************************************
+ Function:      icon_update
+ Description:   Updates an icon for the given fs,disc and drive.
+                sprite  -> name of the sprite to use
+                fsnumber = filing system number, or -1 for any
+                disc    -> disc name, or NULL for any
+                drives   = drive map, or -1
+ Returns:       error or NULL
+ ******************************************************************/
+_kernel_oserror *icon_update(Icon** list, const char *sprite,
+                     int fsnumber, const char *disc, int drives);
 
 /*******************************************************************
  Function:      icon_tidy

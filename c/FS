@@ -1,7 +1,12 @@
 #include "FS.h"
+#include "StringUtils.h"
 
 #include <stdlib.h>
 #include <string.h>
+
+static _kernel_oserror err_FS_Not_Found     = {0, "FS not found"};
+static _kernel_oserror err_FS_Already_Added = {0, "FS already added"};
+static _kernel_oserror err_Out_Of_Memory    = {0, "Out of memory" };
 
 /*******************************************************************
  Function:      fs_add
@@ -13,19 +18,27 @@
                 newfs  -> pointer to update with the new FS, or NULL
  Returns:       pointer to the new head of the FS list.
  ******************************************************************/
-FS* fs_add(FS *list, fsparameters_t *params, FS** newfs)
+_kernel_oserror *fs_add(FS **list, fsparameters_t *params, FS** newfs)
 {
-    FS *fs   = malloc(sizeof(FS));
-    FS *last = list;
+    FS *fs;
+    FS *last = *list;
     int n;
 
     while (last && last->next)
-        last = last->next;
+    {
+        if (last->fsparams->fsnumber == params->fsnumber)
+            return &err_FS_Already_Added;
 
+        last = last->next;
+    }
+    if (last && last->fsparams->fsnumber == params->fsnumber)
+        return &err_FS_Already_Added;
+
+    fs  = malloc(sizeof(FS));
     if (!fs)
     {
         *newfs = 0;
-        return list;
+        return &err_Out_Of_Memory;
     }
 
     fs->fsparams = params;
@@ -39,12 +52,14 @@ FS* fs_add(FS *list, fsparameters_t *params, FS** newfs)
         fs->drive[n].share         = ShareUnknown;
     }
 
-    fs  ->next = NULL;
+    fs->next = NULL;
     if (last)
-        last->next = fs;
+        last->next= fs;
+    else
+        *list = fs;
 
     *newfs = fs;
-    return list ? list : fs;
+    return 0;
 }
 
 /*******************************************************************
@@ -54,12 +69,12 @@ FS* fs_add(FS *list, fsparameters_t *params, FS** newfs)
                 fsname -> the name of the FS to remove.
  Returns:       pointer to the new head of the FS list.
  ******************************************************************/
-FS* fs_remove(FS *list, const char *fsname, int *removed)
+_kernel_oserror* fs_remove(FS **list, const char *fsname)
 {
     FS *head = NULL, *last= NULL;
-    FS *i = list;
+    FS *i = *list;
+    int removed = 0;
 
-    *removed = 0;
     while (i)
     {
         if (!strcmp(i->fsparams->fsname, fsname))
@@ -69,7 +84,7 @@ FS* fs_remove(FS *list, const char *fsname, int *removed)
             if (last) last->next = i;
             fsparams_destroy(d->fsparams);
             free(d);
-            ++*removed;
+            ++removed;
         }
         else
         {
@@ -79,7 +94,11 @@ FS* fs_remove(FS *list, const char *fsname, int *removed)
         }
     }
 
-    return head;
+    if (!removed)
+        return &err_FS_Not_Found;
+
+    *list = head;
+    return 0;
 }
 
 /*******************************************************************
@@ -107,7 +126,7 @@ FS* fs_find_by_number(FS *list, int fsnumber)
 FS* fs_find_by_name(FS *list, const char *fsname)
 {
     for (; list; list=list->next)
-        if (!strcmp(list->fsparams->fsname, fsname)) // **FIXME** stricmp
+        if (!stricmp(list->fsparams->fsname, fsname))
             break;
     return list;
 }

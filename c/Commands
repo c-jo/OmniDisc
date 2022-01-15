@@ -13,6 +13,50 @@ static _kernel_oserror err_FS_Already_Registered = { 0, "Filing system already r
 static _kernel_oserror err_FS_Not_Registered = { 0, "Filing system not registered." };
 
 /*******************************************************************
+ Function:      parse_drives
+ Description:   Convert a drives string into a drives mask.
+ Parameters:    drives_str -> drives string
+ Returns:       drives map, or -1 for null or empty string.
+ ******************************************************************/
+static int parse_drives(const char *drives_str)
+{
+    int drives = 0;
+    const char *c;
+        if (!drives_str || drives_str[0] == '\0')
+        return -1;
+
+    for (c=drives_str; *c != '\0'; ++c)
+    {
+        int n = *c-48;
+        if (n < 0 || n > 7)
+            return 0;
+         drives |= 1<<n;
+    }
+
+    return drives;
+}
+
+/*******************************************************************
+ Function:      get_fs_number
+ Description:   Gets FS number from nane, looking in our FS list.
+ Parameters:    fsname -> fs name
+ Returns:       fs numbber, 0 if not found, -1 for null/empty string.
+ ******************************************************************/
+static int get_fs_number(const char *fsname)
+{
+    FS *fs;
+
+    if (!fsname || fsname[0] == '\0') return -1;
+
+    fs = fs_find_by_name(fses, fsname);
+
+    if (!fs)
+        return 0;
+
+    return fs->fsparams->fsnumber;
+}
+
+/*******************************************************************
  Function:      cmd_desktop
  Description:   Handle the Desktop_FilerX command
  Parameters:    arg_string -> the command arguments
@@ -37,8 +81,9 @@ _kernel_oserror*cmd_desktop(const char* arg_string, const char *module)
  ******************************************************************/
 static _kernel_oserror* add_fs(const char *fsname, bool fd_names)
 {
-    FS *newfs = NULL;
     fsparameters_t *fsparams;
+    _kernel_oserror *e;
+    FS *newfs = NULL;
 
     if (fs_find_by_name(fses, fsname) != NULL)
         return &err_FS_Already_Registered;
@@ -47,13 +92,14 @@ static _kernel_oserror* add_fs(const char *fsname, bool fd_names)
     if (fsparams == NULL)
         return &err_cannot_add; /* Not ideal - we cannot differentiate memory and FS problems */
 
-    fses = fs_add(fses, fsparams, &newfs);
-    if (newfs == NULL)
-        return &err_no_memory;
+    e = fs_add(&fses, fsparams, &newfs);
+    if (e)
+        return e;
 
     newfs->fd_names = fd_names;
     find_drives(newfs);
 
+    pollword |= Pollword_Drive;
     return 0;
 }
 
@@ -65,10 +111,11 @@ static _kernel_oserror* add_fs(const char *fsname, bool fd_names)
  ******************************************************************/
 static _kernel_oserror* remove_fs(const char *fsname)
 {
-    int removed = 0;
-    fses = fs_remove(fses, fsname, &removed);
-    if (removed == 0)
-        return &err_FS_Not_Registered;
+    _kernel_oserror *e;
+
+    e = fs_remove(&fses, fsname);
+    if (e)
+        return e;
 
     pollword |= Pollword_Drive;
     return 0;
@@ -153,40 +200,61 @@ _kernel_oserror*cmd_fs(const char* arg_string)
  Returns:       pointer to error, or NULL if successful
  ******************************************************************/
 static _kernel_oserror *add_icon(const char *sprite,
-                const char *fsname, const char *disc, const char *drives)
+            const char *fsname, const char *disc, const char *drives)
 {
     // Check the sprite exists
     _kernel_oserror *e;
-    FS *fs;
-
+    int fsnumber;
     e = _swix(Wimp_SpriteOp, _IN(0)|_IN(2), 40, sprite);
     if (e)
         return e;
 
-    fs = fs_find_by_name(fses, fsname);
-    if (!fs)
+    fsnumber = get_fs_number(fsname);
+    if (fsnumber == 0)
         return &err_FS_Not_Registered;
 
-    return icon_add(&icons, sprite, fs->fsparams->fsnumber, disc, drives);
+    return icon_add(&icons, sprite,
+                     fsnumber, disc, parse_drives(drives));
 }
 
 /*******************************************************************
  Function:      remove_icon
  Description:   Removes an icon.
+ Parameters:    sprite -> name of sprite in Wimp area
+                fsname -> name of FS
+                disc   -> disc name or NULL
+                drives -> drives string or NULL
+ Returns:       pointer to error, or NULL if successful
+ ******************************************************************/
+static _kernel_oserror *remove_icon(
+            const char *fsname, const char *disc, const char *drives)
+{
+    int fsnumber = get_fs_number(fsname);
+    if (fsnumber == 0)
+        return &err_FS_Not_Registered;
+
+    return icon_remove(&icons,
+                       fsnumber, disc, parse_drives(drives));
+}
+
+/*******************************************************************
+ Function:      update_icon
+ Description:   Update an icon.
  Parameters:    sprite-> name of sprite in Wimp area
                 fsname-> name of FS
                 disc  -> disc name or NULL
                 drive -> drives string or NULL
  Returns:       pointer to error, or NULL if successful
  ******************************************************************/
-static _kernel_oserror *remove_icon(const char *icon,
-                const char *fsname, const char *disc, const char *drive)
+static _kernel_oserror *update_icon(const char *sprite,
+            const char *fsname, const char *disc, const char *drives)
 {
-    FS *fs = fs_find_by_name(fses, fsname);
-    if (!fs)
+    int fsnumber = get_fs_number(fsname);
+    if (fsnumber == 0)
         return &err_FS_Not_Registered;
 
-    return icon_remove(&icons, icon, fs->fsparams->fsnumber, disc, drive);
+    return icon_update(&icons, sprite,
+                       fsnumber, disc, parse_drives(drives));
 }
 
 /*******************************************************************
@@ -248,10 +316,11 @@ static _kernel_oserror *list_icons(void)
 ******************************************************************/
 _kernel_oserror*cmd_icon(const char* arg_string)
 {
-    size_t bufsize = 24+strlen(arg_string);
+    size_t bufsize = 28+strlen(arg_string);
     static struct {
         char *add;
-        char *remove;
+        char *update;
+        int   remove;
         int   list;
         char *fs;
         char *disc;
@@ -262,13 +331,15 @@ _kernel_oserror*cmd_icon(const char* arg_string)
     readargs_icon = malloc(bufsize);
 
     e = _swix(OS_ReadArgs, _INR(0,3),
-                  "add/K,remove/K,list/S,fs/K,disc/K,drives/K",
+                  "add/K,update/K,remove/S,list/S,fs/K,disc/K,drives/K",
                   arg_string, readargs_icon, bufsize);
 
     if (!e && readargs_icon->add)
         e = add_icon(readargs_icon->add, readargs_icon->fs, readargs_icon->disc, readargs_icon->drive);
     if (!e && readargs_icon->remove)
-        e =remove_icon(readargs_icon->remove, readargs_icon->fs, readargs_icon->disc, readargs_icon->drive);
+        e =remove_icon(readargs_icon->fs, readargs_icon->disc, readargs_icon->drive);
+    if (!e && readargs_icon->update)
+        e =update_icon(readargs_icon->update, readargs_icon->fs, readargs_icon->disc, readargs_icon->drive);
     if (!e && readargs_icon->list)
         e = list_icons();
 

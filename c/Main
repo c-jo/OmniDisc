@@ -195,16 +195,6 @@ void baricon_delete_icon(int handle)
     _swi(Wimp_DeleteIcon, _IN(1), &dib);
 }
 
-void baricon_redraw_icon(int handle)
-{
-     // Refresh the icon
-     WimpSetIconStateBlock sisblock;
-     sisblock.window_handle = WimpWindow_Iconbar;
-     sisblock.icon_handle   = handle;
-     sisblock.EOR_word = sisblock.clear_word = 0;
-     _swi(Wimp_SetIconState, _IN(1), &sisblock);
-}
-
 void baricon_update_icon(int handle, char *text, char *validation)
 {
     unsigned xsize,ysize,textwidth;

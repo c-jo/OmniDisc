@@ -4,41 +4,15 @@
 #include "swis.h"
 
 #include "Icon.h"
+#include "StringUtils.h"
 
 #ifdef FORTIFY
 #include "fortify.h"
 #endif
 
-static int stricmp(const char *s1, const char *s2)
-{
-     while (*s1 != 0)
-         if (toupper(*s1++) != toupper(*s2++)) return 1;
-     return 0;
-}
-
-static _kernel_oserror err_InvalDrives = { 0, "Invalid drive string" };
 static _kernel_oserror err_Memory      = { 0, "Couldn't allocate memory" };
 static _kernel_oserror err_NotFound    = { 0, "Icon not found." };
 static _kernel_oserror err_AlreadySet  = { 0, "Icon already set" };
-
-static int parse_drives(const char *drives_str)
-{
-    int drives = 0;
-    const char *c;
-    if (!drives_str || drives_str[0] == '\0')
-        return -1;
-
-    for (c=drives_str; *c != '\0'; ++c)
-    {
-        int n = *c-48;
-        if (n < 0 || n > 7)
-            return 0;
-         drives |= 1<<n;
-    }
-
-    return drives;
-}
-
 
 /*******************************************************************
  Function:      icon_add
@@ -54,10 +28,9 @@ _kernel_oserror *icon_add(Icon** list,
                           const char *sprite,
                           int fsnumber,
                           const char *disc,
-                          const char *drives_str)
+                          int drives)
 {
     Icon *icon, *last = *list;
-    int drives = parse_drives(drives_str);
     for (icon = *list; icon; icon = icon->next)
     {
         if (icon->fsnumber == fsnumber &&
@@ -88,6 +61,39 @@ _kernel_oserror *icon_add(Icon** list,
 }
 
 /*******************************************************************
+ Function:      icon_update
+ Description:   Updates an icon for the given fs,disc and drive.
+                sprite  -> name of the sprite to use
+                fsnumber = filing system number, or -1 for any
+                disc    -> disc name, or NULL for any
+                drives   = drive map, or -1
+ Returns:       error or NULL
+ ******************************************************************/
+_kernel_oserror *icon_update(Icon** list, const char *sprite,
+                     int fsnumber, const char *disc, int drives)
+{
+    Icon *i = *list;
+    bool updated = false;
+
+    while (i)
+    {
+        if ( (i->fsnumber == fsnumber) &&
+             (!stricmp(i->disc, disc ? disc : "")) &&
+             (i->drives == drives) )
+        {
+            strcpy(i->sprite, sprite);
+            updated = true;
+        }
+        i = i->next;
+    }
+
+    if (!updated)
+        return &err_NotFound;
+
+    return 0;
+}
+
+/*******************************************************************
  Function:      icon_remove
  Description:   Removes an icon for the given fs,disc and drive.
  Parameters:    list  -> current head of the icons list
@@ -96,23 +102,19 @@ _kernel_oserror *icon_add(Icon** list,
                 drive  = the drive number, or -1
  Returns:       pointer to the new head of the icon list.
  ******************************************************************/
-_kernel_oserror *icon_remove(Icon** list, const char *sprite,
-                     int fsnumber, const char *disc, const char *drives)
+_kernel_oserror *icon_remove(Icon** list,
+                     int fsnumber, const char *disc, int drives)
 {
     Icon *i = *list;
     Icon *head = NULL, *last = NULL;
     bool removed= false;
-    int dr = parse_drives(drives);
-    if (dr == 0)
-        return &err_InvalDrives;
 
     while (i)
     {
         bool remove =
-            (!stricmp(i->sprite, sprite ? sprite : "")) &&
             (i->fsnumber == fsnumber) &&
             (!stricmp(i->disc, disc ? disc : "")) &&
-            (i->drives == dr);
+            (i->drives == drives);
 
         if (remove)
         {
@@ -138,6 +140,14 @@ _kernel_oserror *icon_remove(Icon** list, const char *sprite,
     return 0;
 }
 
+/*******************************************************************
+ Function:      icon_remove_fs
+ Description:   Removes all icon for the given fs. Such as when
+                removing it.
+ Parameters:    list    -> current head of the icons list
+                fsnumber = the name filing system number.
+ Returns:       Void
+ ******************************************************************/
 void icon_remove_fs(Icon** list, int fsnumber)
 {
     Icon *i = *list;
@@ -162,7 +172,6 @@ void icon_remove_fs(Icon** list, int fsnumber)
 
     *list = head;
 }
-
 
 /*******************************************************************
  Function:      icon_match

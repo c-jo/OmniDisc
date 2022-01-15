@@ -15,7 +15,7 @@ void test_match(void)
     strcpy(i1.sprite,"test1");
     i1.fsnumber = 8;
     strcpy(i1.disc,  "");
-    i1.drives  = 0xff;
+    i1.drives  = -1;
 
     CHECK_GT(icon_match(&i1, 8, "HardDisc4" ,4), 0);
     CHECK_GT(icon_match(&i1, 8, "HARDDISC4" ,4), 0);
@@ -27,15 +27,15 @@ void test_match(void)
 
     // Match hard drives only
     i1.drives = 0xf0;
-    CHECK_GT(icon_match(&i1,8,"HardDisc4",4), 0);
-    CHECK_EQ(icon_match(&i1,8,"14_14_Fri",0), 0);
+    CHECK_GT(icon_match(&i1,8, "HardDisc4",4), 0);
+    CHECK_EQ(icon_match(&i1,8, "14_14_Fri",0), 0);
 
     // Match floppy discs only
     i1.drives = 0x0f;
     CHECK_EQ(icon_match(&i1,8,"HardDisc4",4), 0);
     CHECK_GT(icon_match(&i1,8,"14_14_Fri",0), 0);
 
-    i1.drives = 0xff;
+    i1.drives = -1;
 
     // Match a disc name
     strcpy(i1.disc, "15_30_Tue");
@@ -105,7 +105,7 @@ void test_list(void)
 {
     Icon *icons = 0;
     // Add one
-    CHECK_ERROR(icon_add(&icons, "harddisc", 8, "HardDisc4", "4"));
+    CHECK_ERROR(icon_add(&icons, "harddisc", 8, "HardDisc4", 1<<4));
     CHECK_NOT_NULL(icons);
     CHECK_IS_NULL(icons->next);
 
@@ -114,7 +114,7 @@ void test_list(void)
     CHECK_STRING(icons->sprite,"harddisc");
 
     // Add another
-    CHECK_ERROR(icon_add(&icons, "harddisc", 8, "HardDisc5", "5"));
+    CHECK_ERROR(icon_add(&icons, "harddisc", 8, "HardDisc5", 1<<5));
     CHECK_NOT_NULL(icons->next);
     CHECK_IS_NULL(icons->next->next);
     CHECK_STRING(icons->disc,       "HardDisc4");
@@ -122,10 +122,10 @@ void test_list(void)
     CHECK_EQ(icons->next->drives, 1<<5);
 
     // this should be an error
-    CHECK_NOT_NULL(icon_add(&icons, "harddisc", 8, "HardDisc5", "5"));
+    CHECK_NOT_NULL(icon_add(&icons, "harddisc", 8, "HardDisc5", 1<<5));
 
     // Remove it
-    CHECK_ERROR(icon_remove(&icons, "harddisc", 8, "HardDisc5", "5"));
+    CHECK_ERROR(icon_remove(&icons, 8, "HardDisc5", 1<<5));
     CHECK_NOT_NULL(icons);
     CHECK_IS_NULL(icons->next);
     CHECK_EQ(icons->fsnumber, 8);
@@ -133,18 +133,18 @@ void test_list(void)
     CHECK_STRING(icons->sprite,"harddisc");
 
     // this should be an error
-    CHECK_NOT_NULL(icon_remove(&icons, "harddisc", 8, "HardDisc5", "5"));
+    CHECK_NOT_NULL(icon_remove(&icons, 8, "HardDisc5", 1<<5));
 
-    CHECK_ERROR(icon_add(&icons, "harddisc", 8,  "HardDisc6", "6"));
-    CHECK_ERROR(icon_add(&icons, "switcher", 8,  "HardDisc7", "7"));
-    CHECK_ERROR(icon_add(&icons, "file_fff", 23, "SCSIdisc",  "4"));
+    CHECK_ERROR(icon_add(&icons, "harddisc", 8,  "HardDisc6", 1<<6));
+    CHECK_ERROR(icon_add(&icons, "switcher", 8,  "HardDisc7", 1<<7));
+    CHECK_ERROR(icon_add(&icons, "file_fff", 23, "SCSIdisc",  1<<4));
 
     icon_remove_fs(&icons, 8);
 
     CHECK_NOT_NULL(icons);
     CHECK_EQ(icons->fsnumber, 23);
 
-    CHECK_ERROR(icon_add(&icons, "harddisc", 8, "NewHD", "4567"));
+    CHECK_ERROR(icon_add(&icons, "harddisc", 8, "NewHD", 0xf0));
     CHECK_NOT_NULL(icons);
     CHECK_NOT_NULL(icons->next);
     CHECK_EQ(icons->next->drives, 0xf0);
