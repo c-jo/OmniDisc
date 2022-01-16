@@ -1,0 +1,25 @@
+/*******************************************************************
+ * File:        FSDefaults
+ * Purpose:     Database of defaults for filing systems.
+ *              Required because to mirror the original Filers we
+ *              need to have different icons. Plus it makes them
+ *              easier to differentiate.
+ * Date:        16 Jan 2022
+ ******************************************************************/
+
+#ifndef FSDEFAULTS_H
+#define FSDEFAULTS_H
+
+#include "bool.h"
+
+/*******************************************************************
+ Function:      fsdefaults_sprite
+ Description:   Return the default sprite to use for a given filing system
+ Parameters:    fsnumber = the filing system number to return details for
+                is_removeable = true to return the removeable variant, or
+                                false to return the fixed variant
+ Returns:       pointer to an sprite name to use
+ ******************************************************************/
+const char *fsdefaults_sprite(int fsnumber, bool is_removeable);
+
+#endif

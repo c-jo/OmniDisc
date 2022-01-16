@@ -1,0 +1,56 @@
+/*******************************************************************
+ * File:        FSDefaults
+ * Purpose:     Database of defaults for filing systems.
+ *              Required because to mirror the original Filers we
+ *              need to have different icons. Plus it makes them
+ *              easier to differentiate.
+ * Date:        16 Jan 2022
+ ******************************************************************/
+
+#include <stdlib.h>
+
+#include "FSDefaults.h"
+#include "FSNumbers.h"
+
+
+/* A structure that defines which icons to use for each file system */
+typedef struct fs_defaults_s {
+    int fsnumber;
+    const char *removeable_sprite;  /* NULL if the fixed_sprite should always be used */
+    const char *fixed_sprite;
+} fs_defaults_t;
+
+/* Terminate the list with fsnumber = 0, which is the fallback default for things we don't know */
+static const fs_defaults_t fs_defaults[] = {
+    { fsnumber_net,         NULL,           "fileserver" },
+    { fsnumber_ramfs,       NULL,           "ramfs" },
+    /* Note: Although the following discs are not FileCore discs, we note their name variants */
+    { fsnumber_resourcefs,  NULL,           "romapps" },
+    { fsnumber_CDFS,        NULL,           "cddisc" },
+    { fsnumber_ShareFS,     NULL,           "file_bda" },
+    { fsnumber_none,        "floppydisc",   "harddisc" },
+};
+
+
+/*******************************************************************
+ Function:      fsdefaults_sprite
+ Description:   Return the default sprite to use for a given filing system
+ Parameters:    fsnumber = the filing system number to return details for
+                is_removeable = true to return the removeable variant, or
+                                false to return the fixed variant
+ Returns:       pointer to an sprite name to use
+ ******************************************************************/
+const char *fsdefaults_sprite(int fsnumber, bool is_removeable)
+{
+    const fs_defaults_t *defs;
+    for (defs = fs_defaults; defs->fsnumber != fsnumber_none; defs++)
+    {
+        if (defs->fsnumber == fsnumber)
+            break;
+    }
+
+    if (is_removeable && defs->removeable_sprite != NULL)
+        return defs->removeable_sprite;
+    return defs->fixed_sprite;
+}
+

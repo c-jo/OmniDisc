@@ -1,0 +1,54 @@
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <assert.h>
+
+#include "FSDefaults.h"
+#include "FSNumbers.h"
+
+int npass = 0;
+int nfail = 0;
+
+void test_default_sprite(int fsnumber, bool is_removeable,
+                         const char *expect)
+{
+    const char *result;
+    printf("Testing %3i, %s : ", fsnumber, is_removeable ? "removeable" : "fixed     ");
+    result = fsdefaults_sprite(fsnumber, is_removeable);
+    if (strcmp(expect, result) == 0)
+    {
+        printf("OK\n");
+        npass++;
+    }
+    else
+    {
+        printf("FAIL: Expected '%s', Got '%s'\n", expect, result);
+        nfail++;
+    }
+}
+
+void test_sprite(void)
+{
+    printf("Testing sprites lookup...\n");
+    test_default_sprite(fsnumber_none,      true,  "floppydisc");
+    test_default_sprite(fsnumber_none,      false, "harddisc");
+
+    /* RAMFS uses the same icon, because it declares itself as removeable */
+    test_default_sprite(fsnumber_ramfs,     true,  "ramfs");
+    test_default_sprite(fsnumber_ramfs,     false, "ramfs");
+
+    /* ADFS isn't defined because it uses the fallback */
+    test_default_sprite(fsnumber_adfs,     true,   "floppydisc");
+    test_default_sprite(fsnumber_adfs,     false,  "harddisc");
+}
+
+int main(void)
+{
+    test_sprite();
+
+    printf("\nResults:\n");
+    printf("Pass:   %i", npass);
+    printf("Fail:   %i", nfail);
+
+    return nfail ? 1 : 0;
+}
