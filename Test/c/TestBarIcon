@@ -1,4 +1,6 @@
 #include "BarIcon.h"
+#include "FSNumbers.h"
+#include "IconPriorities.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -76,8 +78,8 @@ void test_update(void)
 {
     FS adfs, scsi;
     BarIcon *baricon_list = 0;
-    init_fs(&adfs,  8, "ADFS");
-    init_fs(&scsi, 26, "SCSI");
+    init_fs(&adfs, fsnumber_adfs, "ADFS");
+    init_fs(&scsi, fsnumber_SCSIFS, "SCSI");
 
     // Check adding the first drive
     sprintf(adfs.drive[4].discname, "Harddisc4");
@@ -85,10 +87,10 @@ void test_update(void)
     baricon_list = baricon_update(baricon_list, &adfs, NULL);
 
     CHECK_EQ(create_count, 1)
-    CHECK_NOT_NULL(baricon_find(baricon_list, 8, 4))
+    CHECK_NOT_NULL(baricon_find(baricon_list, fsnumber_adfs, 4))
     CHECK_NOT_NULL(baricon_find_icon(baricon_list, 1))
 
-    CHECK_EQ(baricon_find     (baricon_list, 8, 4)->handle, 1);
+    CHECK_EQ(baricon_find     (baricon_list, fsnumber_adfs, 4)->handle, 1);
     CHECK_EQ(baricon_find_icon(baricon_list, 1)->fsnumber,  8);
     CHECK_EQ(baricon_find_icon(baricon_list, 1)->drive,     4);
 
@@ -98,11 +100,11 @@ void test_update(void)
     baricon_list = baricon_update(baricon_list, &adfs, NULL);
 
     CHECK_EQ(create_count, 2);
-    CHECK_EQ(baricon_find     (baricon_list, 8, 4)->handle, 1);
+    CHECK_EQ(baricon_find     (baricon_list, fsnumber_adfs, 4)->handle, 1);
     CHECK_EQ(baricon_find_icon(baricon_list, 1)->fsnumber,  8);
     CHECK_EQ(baricon_find_icon(baricon_list, 1)->drive,     4);
 
-    CHECK_EQ(baricon_find     (baricon_list, 8, 5)->handle, 2);
+    CHECK_EQ(baricon_find     (baricon_list, fsnumber_adfs, 5)->handle, 2);
     CHECK_EQ(baricon_find_icon(baricon_list, 2)->fsnumber,  8);
     CHECK_EQ(baricon_find_icon(baricon_list, 2)->drive,     5);
 
@@ -113,10 +115,10 @@ void test_update(void)
 
     CHECK_EQ(delete_count, 1);
 
-    CHECK_IS_NULL(baricon_find     (baricon_list, 8, 4) );
+    CHECK_IS_NULL(baricon_find     (baricon_list, fsnumber_adfs, 4) );
     CHECK_IS_NULL(baricon_find_icon(baricon_list, 1)    );
 
-    CHECK_EQ(baricon_find     (baricon_list, 8, 5)->handle, 2);
+    CHECK_EQ(baricon_find     (baricon_list, fsnumber_adfs, 5)->handle, 2);
     CHECK_EQ(baricon_find_icon(baricon_list, 2)->fsnumber,  8);
     CHECK_EQ(baricon_find_icon(baricon_list, 2)->drive,     5);
 
@@ -146,8 +148,8 @@ void test_positioning(void)
     BarIcon *baricon_list = 0;
     unsigned n;
 
-    init_fs(&adfs, 8,  "ADFS");
-    init_fs(&scsi, 26, "SCSI");
+    init_fs(&adfs, fsnumber_adfs,  "ADFS");
+    init_fs(&scsi, fsnumber_SCSIFS, "SCSI");
 
     create_count = 0;
 
@@ -227,7 +229,7 @@ void test_changes(void)
     icon.drives = 1<<4;
     icon.next = NULL;
 
-    init_fs(&adfs, 8, "ADFS");
+    init_fs(&adfs, fsnumber_adfs, "ADFS");
 
     create_count = 0;
 

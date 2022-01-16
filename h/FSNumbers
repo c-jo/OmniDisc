@@ -12,6 +12,7 @@
 #define fsnumber_net            5
 #define fsnumber_adfs           8
 #define fsnumber_ramfs          23
+#define fsnumber_SCSIFS         26
 #define fsnumber_CDFS           37
 #define fsnumber_resourcefs     46
 #define fsnumber_ShareFS        99
