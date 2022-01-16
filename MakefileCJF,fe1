@@ -42,9 +42,12 @@ OBJS       = \
              o.Main \
              o.FindDrives \
              o.Icon \
-             o.IconPosition \
              o.Tools \
+             o.FS \
              o.FSParameters \
+             o.BarIcon \
+             o.Commands \
+             o.StringUtils \
 
 FORTIFY   ?= no
 

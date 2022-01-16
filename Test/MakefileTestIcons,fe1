@@ -35,8 +35,9 @@ CDEFINES   = -DNO_STDBOOL
 LIBS       = ${CLIB}
 
 # Objects to build, using the format o.<name> (will be varied for build type)
-OBJS       = o.Icon \
-             o.TestIcons \
+OBJS       = o.TestIcons \
+             o.Icon \
+             o.StringUtils \
 
 # Space separated list of XML files for building documentation.
 #DOCSRC = <prm-in-xml-sources>

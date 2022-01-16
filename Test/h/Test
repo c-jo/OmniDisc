@@ -1,0 +1,19 @@
+#ifndef TESt_H
+#define TEST_H
+
+#include <stdio.h>
+#include <stdlib.h>
+
+#define CHECK_EQ(VAR, EXP) { if (VAR != EXP) { printf("%d: %s got %d expected %d\n", __LINE__,#VAR, VAR, EXP); exit(1); } else if (SHOW_PASS) printf("%d: %s == %d - PASSED\n", __LINE__, #VAR, EXP); }
+
+#define CHECK_GT(VAR, EXP) { if (VAR <= EXP) { printf("%d: %s got %d expected > %d\n", __LINE__,#VAR, VAR, EXP); exit(1); } else if (SHOW_PASS) printf("%d: %s > %d - PASSED\n", __LINE__, #VAR, EXP); }
+
+#define CHECK_NOT_NULL(VAR) { if (VAR == NULL) { printf("%d: %s got NULL, expected non-null\n", __LINE__,#VAR); exit(1); }  else if (SHOW_PASS) printf("%d: %s != NULL - PASSED\n", __LINE__, #VAR); }
+
+#define CHECK_IS_NULL(VAR) { if (VAR != NULL) { printf("%d: %s got value, expected NULL\n", __LINE__,#VAR); exit(1); }  else if (SHOW_PASS) printf("%d: %s == NULL - PASSED\n", __LINE__, #VAR); }
+
+#define CHECK_STRING(VAR, EXP) { if (strcmp(VAR,EXP)) { printf("%d: %s got '%s', expected '%s'\n", __LINE__,#VAR, VAR, EXP); exit(1); }  else if (SHOW_PASS) printf("%d: %s '%s' == '%s' - PASSED\n", __LINE__, #VAR, VAR, EXP); }
+
+#define CHECK_ERROR(VAR) { _kernel_oserror *e = VAR; if (e) { printf("%d: %s got error '%s'\n", __LINE__,#VAR, e->errmess); exit(1); }  else if (SHOW_PASS) printf("%d: %s error == NULL  - PASSED\n", __LINE__, #VAR); }
+
+#endif

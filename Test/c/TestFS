@@ -1,0 +1,48 @@
+#include <string.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <assert.h>
+
+#include "FS.h"
+
+fsparameters_t *fsp_dup(fsparameters_t *src)
+{
+    fsparameters_t* z = malloc(sizeof(*src));
+    memcpy(z, src, sizeof(*src));
+    return z;
+}
+
+void test_list(void)
+{
+    FS *fs_list = NULL;
+    FS *newfs1, *newfs2;
+    fsparameters_t fsp1 = { "ADFS", "ADFS", 8 };
+    fsparameters_t fsp2 = { "RamFS", "RAMFS", 23 };
+
+    assert(fs_add(&fs_list, fsp_dup(&fsp1), &newfs1) == NULL);
+    assert(fs_list != NULL);
+    assert(newfs1  != NULL);
+    assert(fs_list == newfs1);
+    assert(fs_list->next == NULL);
+
+    assert(fs_add(&fs_list, fsp_dup(&fsp2), &newfs2) == NULL);
+    assert(newfs2  != NULL);
+    assert(fs_list == newfs1);
+    assert(fs_list->next == newfs2);
+
+    assert(fs_remove(&fs_list, "ADFS") == NULL);
+    assert(fs_list == newfs2);
+    assert(fs_list->next == NULL);
+
+    assert(fs_add(&fs_list, fsp_dup(&fsp1), &newfs1) == NULL);
+    assert(fs_list->next == newfs1);
+
+    assert(fs_remove(&fs_list, "RAMFS") == NULL);
+    assert(fs_list == newfs1);
+}
+
+int main(void)
+{
+    test_list();
+    return 0;
+}

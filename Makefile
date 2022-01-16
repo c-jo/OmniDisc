@@ -6,9 +6,12 @@ OBJS        = FilerX \
 			  Enter \
 			  FindDrives \
 			  Icon \
-			  IconPosition \
 			  Tools \
-			  FSParameters
+			  FS \
+			  FSParameters \
+			  BarIcon \
+			  Commands \
+			  StringUtils
 
 CMHGDEPENDS = FilerX
 CUSTOMRES   = no

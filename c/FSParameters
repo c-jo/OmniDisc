@@ -45,8 +45,6 @@ fsparameters_t *fsparams_create(const char *name)
     if (!fsp)
         return NULL;
 
-    /* The name is always the name we were supplied */
-    strcpy(fsp->name, name);
     strcpy(fsp->swiprefix, name);
     strcpy(fsp->fsname, name);
     fsp->fsnumber = 0;
@@ -63,7 +61,7 @@ fsparameters_t *fsparams_create(const char *name)
         char **mapping = name_swibase_mapping[0];
         for (; mapping[0] != NULL; mapping++)
         {
-            if (strcmp(fsp->name, mapping[0])==0)
+            if (strcmp(name, mapping[0])==0)
             {
                 strcpy(fsp->swiprefix, mapping[1]);
                 break;

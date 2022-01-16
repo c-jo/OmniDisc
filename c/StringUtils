@@ -1,0 +1,30 @@
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+#include "StringUtils.h"
+
+char *strdup(const char *src)
+{
+    char *tgt;
+    if (src == 0)
+        return 0;
+    tgt = malloc(strlen(src)+1);
+    if (tgt == NULL)
+         return NULL;
+
+    return strcpy(tgt, src);
+}
+
+int stricmp(const char *a, const char *b)
+{
+    while (*a || *b)
+    {
+        char a1 = toupper(*a);
+        char b1 = toupper(*b);
+        if (a1 > b1) return  1;
+        if (a1 < b1) return -1;
+        a++; b++;
+    }
+    return 0;
+}

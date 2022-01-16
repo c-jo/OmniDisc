@@ -1,13 +1,16 @@
 #!/usr/bin/env riscos-amu -f
-# Makefile for testfinddrives
+# Makefile for testicon
 #
+# Note: Using BUILD32 as a proxy for Makefiles used by build service.
 
+ifdef BUILD32
 VPATH = @ ^.
+endif
 
 #
 # Program specific options:
 #
-COMPONENT  = testfinddrives
+COMPONENT  = testbaricon
 
 # Specifies additional targets for startup
 #INITTARGET = inittarget
@@ -26,25 +29,41 @@ TYPE       = aif
 
 # Comma-separated list of paths to use for includes, such as:
 #	<Lib$Dir>.LibName.
-INCLUDES   = ^.
+ifdef BUILD32
+INCLUDES   = ^.,TBox:
+else
+CINCLUDES  = -I^.
+endif
 
 # Space separated list of defines to set, eg -DDEBUG
 CDEFINES   = -DNO_STDBOOL
 
 # Space separated list of libraries to link against.
+ifdef BUILD32
 LIBS       = ${CLIB}
+endif
 
 # Objects to build, using the format o.<name> (will be varied for build type)
-OBJS       = o.FindDrives \
-             o.TestFindDrives \
-             o.FSParameters
+OBJS       = TestBarIcon \
+             BarIcon \
+             FS \
+             FSParameters \
+             Icon \
+             StringUtils \
+
+
+ifdef BUILD32
+OBJS      := $(OBJS:%=o.%)
+endif
 
 # Space separated list of XML files for building documentation.
 #DOCSRC = <prm-in-xml-sources>
 
-
+ifdef BUILD32
 include LibraryCommand
-
+else
+include CApp
+endif
 
 #---------------------------------------------------------------------------
 # Dynamic dependencies:

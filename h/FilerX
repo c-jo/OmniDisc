@@ -4,11 +4,13 @@
 #include "bool.h"
 #include "Wimp.h"
 
+#include "FS.h"
 #include "Icon.h"
 #include "Tools.h"
 #include "FSParameters.h"
+#include "BarIcon.h"
 
-#define UNUSED(x) (void)x
+#define UNUSED(x) (void)x;
 
 char *strdup(const char *src);
 
@@ -20,37 +22,8 @@ extern bool     sharefs;
 #define Pollword_Drive 0x02
 #define Pollword_Icon  0x04
 
-typedef enum
-{
-    ShareUnknown     =-1,
-    NotShared        = 0,
-    ShareProtected   = 1,
-    ShareUnprotected = 2
-} ShareType;
-
-typedef struct
-{
-    int         is_removeable:1;    /* Is a dynamic disc */
-    int         is_ejectable:1;     /* Has power eject */
-    int         is_floppy:1;        /* Uses floppy semantics for mounting and formatting */
-    char        discname[12];
-    const char *validation;
-    int         baricon;
-    ShareType   share;
-} Drive;
-
 #define DriveFlags_Present 1
 #define DriveFlags_IconBar 2
-
-typedef struct FS_s
-{
-    fsparameters_t *fsparams;
-
-    bool      fd_names;
-    Drive     drive[8];
-
-    struct FS_s *next;
-} FS;
 
 extern FS *fses;
 
@@ -62,12 +35,16 @@ extern Icon *icons;
                 and pos will be updated with the icon to create next to
                 or the priority. Pos will be set to the positon io the
                 icobar. These values can be used with Wimp_CreateIcon.
- Parameters:    drive => drive to create the icon far
-                icon  => icon handle or priority
-                pos   => position
- Returns:       Nothing, but *icon and *pos will be updated..
+ Parameters:    fs_list      => list of file sstems
+                baricon_list => list of bar icons
+                fsnumber = fs number to create the icon for
+                drive    = drive to create the icon far
+                icon  => updated with icon handle or priority
+                pos   => updated with position
+ Returns:       Nothing, but *icon and *pos will be updated.
  ******************************************************************/
-void icon_position(Drive *drive, int *pos, int *icon);
+void icon_position(FS *fs_list, BarIcon *baricon_list,
+                   int fsnumber, int drive, int *pos, int *icon);
 
 /*******************************************************************
  Function:      fsdrive_tool_capable
@@ -101,5 +78,8 @@ _kernel_oserror *fsdrive_tool_invoke(FS *fs, int drive,
  ******************************************************************/
 _kernel_oserror *fsdrive_share(FS *fs, int drive,
                                ShareType sharetype);
+
+
+void find_drives(FS *);
 
 #endif

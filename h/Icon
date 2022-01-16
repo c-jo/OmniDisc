@@ -2,31 +2,88 @@
 #define ICON_H
 
 #include "bool.h"
-
 #include "kernel.h"
 
 typedef struct Icon_s {
-    char fs[8];    // file system, or empty string
-    char disc[12]; // Disc nane, :x or empty string
-    int  drive;    // Drive number, or -1
-    bool floppy;   // Apply to floppies
-    bool winnie;   // Apply to winnies
-    char val[14];  // Validitiy string (Siconname)
-
     struct Icon_s *next;
-    struct Icon_s *prev;
+
+    char sprite[14];      // Sprite name
+    int fsnumber;         // file system number, or -1 for any
+    char disc[12];        // Disc nane, or empty string for any
+    unsigned int drives;  // Bitmask of drives (b0 = :1..b7 = :7)
 } Icon;
 
-// cmd is of form
-// (-fs FS) (-disc Disc) icon  -f | -h | -delete
-_kernel_oserror *icon_command(Icon **icons, const char *cmd);
 
-// Returns a match value for the given icon with fs/disc/drive, -1 for no match
-// The higher the number the better the match.
-int icon_match(Icon *icon, const char *fs, int drive, const char *discname);
+/*******************************************************************
+ Function:      icon_add
+ Description:   Adds an icon for the given fs,disc and drive.
+                sprite  -> name of the sprite to use
+                fsnumber = filing system number, or -1 for any
+                disc    -> disc name, or NULL for any
+                drives   = drive map, or -1
+ Returns:       error or NULL
+ ******************************************************************/
+_kernel_oserror *icon_add(Icon** list, const char *sprite,
+                     int fsnumber, const char *disc, int drives);
 
-// Find the best icon for the given drive and return it's validation string. If
-// one cannot be found, return Sharddisc or Sfloppydisc (depending on drive)
-const char *icon_find(Icon* icons, const char *fs, int drive, const char *discname);
+/*******************************************************************
+ Function:      icon_remove
+ Description:   Removes an icon for the given fs,disc and drive. The
+                fs, disc and drive parameters must match those given
+                to icon_add.
+ Parameters:    list  ->-> list to update
+                fsnumber = filing system number, or -1 for any
+                disc    -> the name of the disc, or NULL
+                drives   = drive map, or -1
+ Returns:       error or NULL
+ ******************************************************************/
+_kernel_oserror *icon_remove(Icon **list,
+                      int fsnumber, const char *disc, int drives);
+
+/*******************************************************************
+ Function:      icon_update
+ Description:   Updates an icon for the given fs,disc and drive.
+                sprite  -> name of the sprite to use
+                fsnumber = filing system number, or -1 for any
+                disc    -> disc name, or NULL for any
+                drives   = drive map, or -1
+ Returns:       error or NULL
+ ******************************************************************/
+_kernel_oserror *icon_update(Icon** list, const char *sprite,
+                     int fsnumber, const char *disc, int drives);
+
+/*******************************************************************
+ Function:      icon_tidy
+ Description:   Removes any icons for file system specified.
+ Parameters:    list  ->-> list to update
+                fsnumber = the fs number to remove
+ Returns:       Nothing
+ ******************************************************************/
+void icon_remove_fs(Icon **list, int fsnumber);
+
+/*******************************************************************
+ Function:      icon_match
+ Description:   Determine a match value for the given icon wirh the
+                specified fs/disc/drive.
+ Parameters:    icon    -> icon to check
+                fsnumber = filing system number
+                disc    -> the name of the disc
+                drive    = the drive number
+ Returns:       Maatch value (higher is better) or -1 for no match.
+ ******************************************************************/
+int icon_match(Icon *icon,
+               int fsnumber, const char *disc, int drive);
+
+/*******************************************************************
+ Function:      icon_find
+ Description:   Find the best icon to use for the given fs/disc/drive.
+ Parameters:    list  -> list of icons.
+                fsnumber = filing system number
+                disc    -> the name of the disc
+                drive    = the drive number
+ Returns:       Sprite name to use.
+ ******************************************************************/
+const char *icon_find(Icon* list,
+                      int fsnumber, const char *disc, int drive);
 
 #endif

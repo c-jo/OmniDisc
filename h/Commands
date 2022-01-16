@@ -1,0 +1,32 @@
+#ifndef COMMANDS_H
+#define COMMANDS_H
+
+#include "kernel.h"
+
+/*******************************************************************
+ Function:      cmd_desktop
+ Description:   Handle the Desktop_FilerX command
+ Parameters:    arg_string -> the command arguments
+                module     -> module title
+ Returns:       pointer to error, or NULL if successful
+ ******************************************************************/
+_kernel_oserror*cmd_desktop(const char* arg_string,
+                            const char* module);
+
+/*******************************************************************
+ Function:      cmd_fs
+ Description:   Handle the FilerX_FS command
+ Parameters:    arg_string -> the command arguments
+ Returns:       pointer to error, or NULL if successful
+ ******************************************************************/
+_kernel_oserror*cmd_fs(const char* arg_string);
+
+/*******************************************************************
+ Function:      cmd_icon
+ Description:   Handle the FilerX_Icon command
+ Parameters:    arg_string -> the command arguments
+ Returns:       pointer to error, or NULL if successful
+******************************************************************/
+_kernel_oserror*cmd_icon(const char* arg_string);
+
+#endif

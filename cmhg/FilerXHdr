@@ -4,7 +4,7 @@
 
 module-is-runnable:
 
-help-string:  FilerX 0.01
+help-string:  FilerX 0.02
 
 title-string: FilerX
 
@@ -20,6 +20,6 @@ generic-veneers: upcall_entry/upcall_handler
 
 command-keyword-table: module_cmd
     Desktop_FilerX(min-args:0, max-args:0),
-    FilerX_AddFS(min-args:1, max-args:2),
-    FilerX_DriveIcon(min-args:0, max-args:99)
+    FilerX_FS(min-args:1, max-args:10),
+    FilerX_Icon(min-args:1, max-args:10)
 

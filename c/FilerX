@@ -4,6 +4,7 @@
 #include "FindDrives.h"
 #include "ShareFS.h"
 #include "Icon.h"
+#include "Commands.h"
 
 #include "kernel.h"
 #include "swis.h"
@@ -66,81 +67,45 @@ static char *fs_drive_name(FS* fs, int drive)
 }
 
 static void add_drive(FS *fs, int drive, const char *name,
-                      bool is_removeable, bool is_ejectable, bool is_floppy)
+               bool is_removeable, bool is_ejectable, bool is_floppy)
 {
     Drive *drv = &(fs->drive[drive]);
 
     if (name)
-        strncpy(drv->discname, name, 10);
+        strncpy(drv->discname, name, 11);
     else
         sprintf(drv->discname, ":%i", drive);
 
     drv->discname[10] = '\0';
-    drv->validation = icon_find(icons, fs->fsparams->name, drive, drv->discname);
+//    drv->validation[ 0] = 'S';
+//    drv->validation[13] = '\0';
+//    strncpy(drv->validation+1,
+//            icon_find(icons, fs->fsparams->fsname, drv->discname, drive), 12);
 
     drv->is_removeable = is_removeable;
-    drv->is_ejectable = is_ejectable;
-    drv->is_floppy = is_floppy;
+    drv->is_ejectable  = is_ejectable;
+    drv->is_floppy     = is_floppy;
 
     pollword |= Pollword_Drive;
-    printf("Adding drive %s %d %s\n", fs->fsparams->name, drive, name ? name : "<No name>");
+    //printf("Adding drive %s %d %s\n",
+    //    fs->fsparams->fsname, drive, name ? name : "<No name>");
 }
 
 static void remove_drive(FS *fs, int drive)
 {
     Drive *drv = &(fs->drive[drive]);
-    drv->validation = NULL;
+    drv->discname[0] = 0;
 
     pollword |= Pollword_Drive;
 }
 
-static void find_drives(FS *fs)
+void find_drives(FS *fs)
 {
     unsigned long flags = FFMD_REPORT_REMOVABLE | FFMD_REPORT_FIXED | FFMD_NAME_FIXED;
     if (fs->fd_names)
         flags |= FFMD_NAME_REMOVABLE;
     find_filecore_module_drives(fs->fsparams, flags,
                                 (found_filecore_drive_f)add_drive, fs);
-}
-
-static _kernel_oserror err_no_memory  = { 0, "No memory" };
-static _kernel_oserror err_bad_module = { 0, "Bad module name" };
-static _kernel_oserror err_cannot_add = { 0, "Cannot add filing system registration" };
-
-static _kernel_oserror* add_fs(const char *module, bool fd_names)
-{
-    FS *fs;
-    int n;
-    if (strlen(module) > 11)
-        return &err_bad_module;
-
-    fs = malloc(sizeof(FS));
-    if (!fs)
-        return &err_no_memory;
-
-    fs->fsparams = fsparams_create(module);
-    if (fs->fsparams == NULL)
-        return &err_cannot_add; /* Not ideal - we cannot differentiate memory and FS problems */
-    fs->fd_names = fd_names;
-
-    for (n=0; n<8; ++n)
-    {
-        fs->drive[n].is_removeable = false;
-        fs->drive[n].is_ejectable  = false;
-        fs->drive[n].is_floppy     = false;
-
-        fs->drive[n].discname[0] =  0;
-        fs->drive[n].validation  =  0;
-        fs->drive[n].baricon     = -1;
-        fs->drive[n].share       = ShareUnknown;
-    }
-
-    fs->next = fses;
-    fses     = fs;
-
-    find_drives(fs);
-    pollword |= Pollword_FS;
-    return 0;
 }
 
 
@@ -207,7 +172,6 @@ _kernel_oserror *fsdrive_tool_invoke(FS *fs, int drive,
     return NULL;
 }
 
-
 /*******************************************************************
  Function:      fsdrive_share
  Description:   Share (or unshare) a drive.
@@ -222,7 +186,7 @@ _kernel_oserror *fsdrive_share(FS *fs, int drive,
     _kernel_oserror *e = 0;
     char *discname = fs->drive[drive].discname;
     char path[32];
-    sprintf(path, "%s::%s.$", fs->fsparams->name, discname);
+    sprintf(path, "%s::%s.$", fs->fsparams->fsname, discname);
 
     if (fs->drive[drive].share != sharetype)
     {
@@ -246,53 +210,6 @@ _kernel_oserror *fsdrive_share(FS *fs, int drive,
             fs->drive[drive].share = sharetype;
      }
      return e;
-}
-
-static _kernel_oserror*cmd_desktop(const char* arg_string, void *pw)
-{
-    UNUSED(pw);
-
-    if (task_handle == 0 || task_handle == -1)
-    {
-        return _swix(OS_Module, _INR(0,2), 2, Module_Title, arg_string);
-    }
-    return 0;
-
-}
-
-static _kernel_oserror*cmd_add_fs(const char* arg_string, void *pw)
-{
-    static unsigned ra_buf[64];
-    _kernel_oserror *e = 0;
-
-    UNUSED(pw);
-
-    e = _swix(OS_ReadArgs, _INR(0,3),
-                  "fs/A,fdnames/S",
-                  arg_string, &ra_buf, sizeof(ra_buf));
-    if (e)
-        return e;
-
-    return add_fs((char*)ra_buf[0], ra_buf[1] == 0 ? false : true);
-
-}
-
-_kernel_oserror *module_cmd(const char *arg_string, int argc, int cmd_no,
-                            void *pw)
-{
-    switch (cmd_no)
-    {
-        case CMD_Desktop_FilerX:
-            return cmd_desktop (arg_string, pw);
-            
-        case CMD_FilerX_AddFS:
-            return cmd_add_fs(arg_string, pw);
-
-        case CMD_FilerX_DriveIcon:
-            pollword |= Pollword_Icon;
-            return icon_command(&icons, arg_string);
-    }
-    return 0;
 }
 
 _kernel_oserror *module_initialise(const char *cmd_tail, int podule_base,
@@ -351,6 +268,38 @@ _kernel_oserror *module_finalise(int fatal, int podule_base, void *pw)
     return NULL;
 }
 
+/*******************************************************************
+ Function:      module_cmd
+ Description:   Handle *commands
+ Parameters:    arg_cstring -> the arguments
+                argc         = count of arguments
+                cmd_no       = command number
+                pw          -> module private area
+ Returns:       pointer to error, or NULL if successful
+ ******************************************************************/
+_kernel_oserror *module_cmd(const char *arg_string, int argc, int cmd_no,
+                            void *pw)
+{
+    UNUSED(argc)
+    UNUSED(pw)
+
+    switch (cmd_no)
+    {
+        case CMD_Desktop_FilerX:
+            return cmd_desktop(arg_string, Module_Title);
+
+        case CMD_FilerX_FS:
+            pollword |= Pollword_Drive;
+            return cmd_fs(arg_string);
+
+        case CMD_FilerX_Icon:
+            pollword |= Pollword_Icon;
+            return cmd_icon(arg_string);
+    }
+
+    return 0;
+}
+
 void module_service(int service_number, _kernel_swi_regs *r, void *private_word)
 {
     UNUSED(private_word);
@@ -365,6 +314,7 @@ void module_service(int service_number, _kernel_swi_regs *r, void *private_word)
         if (task_handle == 0)
         {
             task_handle = -1;
+            pollword    = Pollword_Drive;
             r->r[0] = (int)"%Desktop_FilerX";
             r->r[1] = 0; // Claim
         }

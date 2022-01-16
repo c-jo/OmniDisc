@@ -1,16 +1,13 @@
 #!/usr/bin/env riscos-amu -f
-# Makefile for testicon
+# Makefile for testtools
 #
-# Note: Using BUILD32 as a proxy for Makefiles used by build service.
 
-ifdef BUILD32
 VPATH = @ ^.
-endif
 
 #
 # Program specific options:
 #
-COMPONENT  = testiconpos
+COMPONENT  = testtools
 
 # Specifies additional targets for startup
 #INITTARGET = inittarget
@@ -29,36 +26,24 @@ TYPE       = aif
 
 # Comma-separated list of paths to use for includes, such as:
 #	<Lib$Dir>.LibName.
-ifdef BUILD32
-INCLUDES   = ^.,TBox:
-else
-CINCLUDES  = -I^.
-endif
+INCLUDES   = ^.
 
 # Space separated list of defines to set, eg -DDEBUG
 CDEFINES   = -DNO_STDBOOL
 
 # Space separated list of libraries to link against.
-ifdef BUILD32
 LIBS       = ${CLIB}
-endif
 
 # Objects to build, using the format o.<name> (will be varied for build type)
-OBJS       = IconPosition \
-             TestIconPos
-
-ifdef BUILD32
-OBJS      := $(OBJS:%=o.%)
-endif
+OBJS       = o.Tools \
+             o.TestTools \
 
 # Space separated list of XML files for building documentation.
 #DOCSRC = <prm-in-xml-sources>
 
-ifdef BUILD32
+
 include LibraryCommand
-else
-include CApp
-endif
+
 
 #---------------------------------------------------------------------------
 # Dynamic dependencies:
