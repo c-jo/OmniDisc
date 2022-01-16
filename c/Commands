@@ -174,7 +174,9 @@ _kernel_oserror*cmd_fs(const char* arg_string)
     }  *readargs_fs;
     _kernel_oserror *e = 0;
 
-    readargs_fs =  malloc(bufsize);
+    readargs_fs = malloc(bufsize);
+    if (!readargs_fs)
+        return &err_no_memory;
 
     e = _swix(OS_ReadArgs, _INR(0,3),
                   "add/K,remove/K,list/S,fdnames/S",
@@ -303,7 +305,7 @@ static _kernel_oserror *list_icons(void)
         }
 
         printf(fmt, icon->sprite, fsname, discname,
-                    icon->drives == -1 ? "<NNY>": drives);
+                    icon->drives == -1 ? "<ANY>": drives);
     }
     return 0;
 }
@@ -329,6 +331,8 @@ _kernel_oserror*cmd_icon(const char* arg_string)
     _kernel_oserror *e = 0;
 
     readargs_icon = malloc(bufsize);
+    if (!readargs_icon)
+        return &err_no_memory;
 
     e = _swix(OS_ReadArgs, _INR(0,3),
                   "add/K,update/K,remove/S,list/S,fs/K,disc/K,drives/K",

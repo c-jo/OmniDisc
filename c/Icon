@@ -175,13 +175,13 @@ void icon_remove_fs(Icon** list, int fsnumber)
 
 /*******************************************************************
  Function:      icon_match
- Description:   Determine a match value for the given icon wirh the
+ Description:   Determine a match value for the given icon with the
                 specified fs/disc/drive.
  Parameters:    icon  -> icon to check
                 fs    -> the name of the filing system, or NULL
                 disc  -> the name of the disc, or NULL
                 drive  = the drive number, or -1
- Returns:       Maatch value (higher is better) or -1 for no match.
+ Returns:       Match value (higher is better) or -1 for no match.
  ******************************************************************/
 int icon_match(Icon *icon,
                int fsnumber, const char *disc, int drive)

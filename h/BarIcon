@@ -31,7 +31,7 @@ void baricon_update_icon(int handle,
                 drives in the filing systems in fslist. Icons will
                 be created using sprites defined in iconlist.
                 icons will be created by calling baricon_create_icon
-                and deleted ny calling baricon_delete_icon (see
+                and deleted by calling baricon_delete_icon (see
                 above).
  Parameters:    list     -> head of the baricon list
                 fslist   -> list of file systems
