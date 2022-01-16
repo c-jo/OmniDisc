@@ -16,19 +16,51 @@
 /* A structure that defines which icons to use for each file system */
 typedef struct fs_defaults_s {
     int fsnumber;
-    const char *removeable_sprite;  /* NULL if the fixed_sprite should always be used */
+    const char *removeable_sprite;      /* NULL if the fixed_sprite should always be used */
     const char *fixed_sprite;
+    unsigned long removeable_priority;  /* PRIORITY_UNSET if fixed_priority should always be used */
+    unsigned long fixed_priority;
 } fs_defaults_t;
+
+
+/* Iconbar priorities
+ *
+ * From specifications:
+ *
+ * &76000000   Scanners     Read-only device
+ * &74000000   CD-ROM       Read-only device
+ * &70000000   Hard disc    Read-write device. Examples: Any fixed RW medium falls into this category
+ * &68000000   Floppies     Read-write device. Examples: Any removable RW medium falls into this category
+ * &60000000   Network      Read-write/Read-only device. Examples: Any network filing system falls into this category
+ * &40000000   Volatiles    Read-write device. Examples: RAMFS, Transient, Trash cans, Memphis, Scrap, etc
+ * &0F000000   Printers     Write-only device
+ * &04000000   Accelerators Examples: ResourceFS, "Pinned" items, Director, Menon, etc.
+ */
+#define PRIORITY_SCANNER     (0x76000000)
+#define PRIORITY_CDROM       (0x74000000)
+#define PRIORITY_HARDDISC    (0x70000000)
+#define PRIORITY_FLOPPYDISC  (0x68000000)
+#define PRIORITY_NETWORK     (0x60000000)
+#define PRIORITY_VOLATILE    (0x40000000)
+#define PRIORITY_PRINTER     (0x0F000000)
+#define PRIORITY_ACCELERATOR (0x04000000)
+
+/* Special value to fall back to the setting for the fixed disc */
+#define PRIORITY_UNSET       (0xFFFFFFFF)
+
 
 /* Terminate the list with fsnumber = 0, which is the fallback default for things we don't know */
 static const fs_defaults_t fs_defaults[] = {
-    { fsnumber_net,         NULL,           "fileserver" },
-    { fsnumber_ramfs,       NULL,           "ramfs" },
+    { fsnumber_ramfs,       NULL,           "ramfs",        PRIORITY_UNSET,         PRIORITY_VOLATILE },
+
     /* Note: Although the following discs are not FileCore discs, we note their name variants */
-    { fsnumber_resourcefs,  NULL,           "romapps" },
-    { fsnumber_CDFS,        NULL,           "cddisc" },
-    { fsnumber_ShareFS,     NULL,           "file_bda" },
-    { fsnumber_none,        "floppydisc",   "harddisc" },
+    { fsnumber_net,         NULL,           "fileserver",   PRIORITY_UNSET,         PRIORITY_NETWORK, },
+    { fsnumber_resourcefs,  NULL,           "romapps",      PRIORITY_UNSET,         PRIORITY_ACCELERATOR },
+    { fsnumber_CDFS,        NULL,           "cddisc",       PRIORITY_UNSET,         PRIORITY_CDROM },
+    { fsnumber_ShareFS,     NULL,           "file_bda",     PRIORITY_UNSET,         PRIORITY_NETWORK },
+
+    /* Fall back if nothing was matched */
+    { fsnumber_none,        "floppydisc",   "harddisc",     PRIORITY_FLOPPYDISC,    PRIORITY_HARDDISC },
 };
 
 
@@ -52,5 +84,28 @@ const char *fsdefaults_sprite(int fsnumber, bool is_removeable)
     if (is_removeable && defs->removeable_sprite != NULL)
         return defs->removeable_sprite;
     return defs->fixed_sprite;
+}
+
+
+/*******************************************************************
+ Function:      fsdefaults_priority
+ Description:   Return the default priority to use for a given filing system
+ Parameters:    fsnumber = the filing system number to return details for
+                is_removeable = true to return the removeable variant, or
+                                false to return the fixed variant
+ Returns:       priority value to use for this filing system
+ ******************************************************************/
+unsigned long fsdefaults_priority(int fsnumber, bool is_removeable)
+{
+    const fs_defaults_t *defs;
+    for (defs = fs_defaults; defs->fsnumber != fsnumber_none; defs++)
+    {
+        if (defs->fsnumber == fsnumber)
+            break;
+    }
+
+    if (is_removeable && defs->removeable_priority != PRIORITY_UNSET)
+        return defs->removeable_priority;
+    return defs->fixed_priority;
 }
 

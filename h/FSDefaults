@@ -22,4 +22,15 @@
  ******************************************************************/
 const char *fsdefaults_sprite(int fsnumber, bool is_removeable);
 
+
+/*******************************************************************
+ Function:      fsdefaults_priority
+ Description:   Return the default priority to use for a given filing system
+ Parameters:    fsnumber = the filing system number to return details for
+                is_removeable = true to return the removeable variant, or
+                                false to return the fixed variant
+ Returns:       priority value to use for this filing system
+ ******************************************************************/
+unsigned long fsdefaults_priority(int fsnumber, bool is_removeable);
+
 #endif
