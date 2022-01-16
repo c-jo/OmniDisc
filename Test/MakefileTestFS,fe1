@@ -35,9 +35,10 @@ CDEFINES   = -DNO_STDBOOL
 LIBS       = ${CLIB}
 
 # Objects to build, using the format o.<name> (will be varied for build type)
-OBJS       = o.FS \
-             o.TestFS \
-             o.FSParameters
+OBJS       = o.TestFS \
+             o.FS \
+             o.FSParameters \
+             o.StringUtils \
 
 # Space separated list of XML files for building documentation.
 #DOCSRC = <prm-in-xml-sources>
