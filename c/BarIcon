@@ -1,5 +1,6 @@
 #include "BarIcon.h"
 #include "Icon.h"
+#include "FSDefaults.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -38,6 +39,7 @@ static void baricon_position(FS *fs_list, BarIcon *baricon_list,
     int clown = -2; // Clowns to the left of me
     int joker = -2; // Jokers to my right
     FS *fs;
+    bool is_removeable = false;
 
     // Find an icon to put ours next to, if we can
     for (fs = fs_list; fs; fs = fs->next)
@@ -54,6 +56,8 @@ static void baricon_position(FS *fs_list, BarIcon *baricon_list,
                 if (clown == -2)
                     clown = -1;
                 joker = -1;
+
+                is_removeable = fs->drive[n].is_removeable;
             }
             else
             {
@@ -90,8 +94,11 @@ static void baricon_position(FS *fs_list, BarIcon *baricon_list,
     }
     else
     {
+        /* There was no existing icon for this filing system, so we just place it on the
+         * left with the default priority for that filing system.
+         */
         *pos  = -5;         // Left side, high
-        *icon = 0x70000000; // priority.
+        *icon = fsdefaults_priority(fsnumber, is_removeable); // priority
     }
 }
 
