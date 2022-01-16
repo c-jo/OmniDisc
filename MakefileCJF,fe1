@@ -47,6 +47,7 @@ OBJS       = \
              o.FSParameters \
              o.BarIcon \
              o.Commands \
+             o.StringUtils \
 
 FORTIFY   ?= no
 

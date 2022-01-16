@@ -44,11 +44,12 @@ LIBS       = ${CLIB}
 endif
 
 # Objects to build, using the format o.<name> (will be varied for build type)
-OBJS       = BarIcon \
-             TestBarIcon \
+OBJS       = TestBarIcon \
+             BarIcon \
              FS \
              FSParameters \
-             Icon
+             Icon \
+             StringUtils \
 
 
 ifdef BUILD32
