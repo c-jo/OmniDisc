@@ -1,0 +1,90 @@
+/*******************************************************************
+ * File:        FSDefaults
+ * Purpose:     Database of defaults for filing systems.
+ *              Required because to mirror the original Filers we
+ *              need to have different icons. Plus it makes them
+ *              easier to differentiate.
+ * Date:        16 Jan 2022
+ ******************************************************************/
+
+#include <stdlib.h>
+
+#include "FSDefaults.h"
+#include "FSNumbers.h"
+#include "IconPriorities.h"
+
+
+/* A structure that defines which icons to use for each file system */
+typedef struct fs_defaults_s {
+    int fsnumber;
+    const char *removeable_sprite;      /* NULL if the fixed_sprite should always be used */
+    const char *fixed_sprite;
+    unsigned long removeable_priority;  /* PRIORITY_UNSET if fixed_priority should always be used */
+    unsigned long fixed_priority;
+} fs_defaults_t;
+
+
+/* Special value to fall back to the setting for the fixed disc */
+#define PRIORITY_UNSET       (0xFFFFFFFF)
+
+
+/* Terminate the list with fsnumber = 0, which is the fallback default for things we don't know */
+static const fs_defaults_t fs_defaults[] = {
+    { fsnumber_ramfs,       NULL,           "ramfs",        PRIORITY_UNSET,         PRIORITY_VOLATILE },
+
+    /* Note: Although the following discs are not FileCore discs, we note their name variants */
+    { fsnumber_net,         NULL,           "fileserver",   PRIORITY_UNSET,         PRIORITY_NETWORK, },
+    { fsnumber_resourcefs,  NULL,           "romapps",      PRIORITY_UNSET,         PRIORITY_ACCELERATOR },
+    { fsnumber_CDFS,        NULL,           "cddisc",       PRIORITY_UNSET,         PRIORITY_CDROM },
+    { fsnumber_ShareFS,     NULL,           "file_bda",     PRIORITY_UNSET,         PRIORITY_NETWORK },
+
+    /* Fall back if nothing was matched */
+    { fsnumber_none,        "floppydisc",   "harddisc",     PRIORITY_FLOPPYDISC,    PRIORITY_HARDDISC },
+};
+
+
+/*******************************************************************
+ Function:      fsdefaults_sprite
+ Description:   Return the default sprite to use for a given filing system
+ Parameters:    fsnumber = the filing system number to return details for
+                is_removeable = true to return the removeable variant, or
+                                false to return the fixed variant
+ Returns:       pointer to an sprite name to use
+ ******************************************************************/
+const char *fsdefaults_sprite(int fsnumber, bool is_removeable)
+{
+    const fs_defaults_t *defs;
+    for (defs = fs_defaults; defs->fsnumber != fsnumber_none; defs++)
+    {
+        if (defs->fsnumber == fsnumber)
+            break;
+    }
+
+    if (is_removeable && defs->removeable_sprite != NULL)
+        return defs->removeable_sprite;
+    return defs->fixed_sprite;
+}
+
+
+/*******************************************************************
+ Function:      fsdefaults_priority
+ Description:   Return the default priority to use for a given filing system
+ Parameters:    fsnumber = the filing system number to return details for
+                is_removeable = true to return the removeable variant, or
+                                false to return the fixed variant
+ Returns:       priority value to use for this filing system
+ ******************************************************************/
+unsigned long fsdefaults_priority(int fsnumber, bool is_removeable)
+{
+    const fs_defaults_t *defs;
+    for (defs = fs_defaults; defs->fsnumber != fsnumber_none; defs++)
+    {
+        if (defs->fsnumber == fsnumber)
+            break;
+    }
+
+    if (is_removeable && defs->removeable_priority != PRIORITY_UNSET)
+        return defs->removeable_priority;
+    return defs->fixed_priority;
+}
+

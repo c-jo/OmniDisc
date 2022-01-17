@@ -1,4 +1,6 @@
 #include "BarIcon.h"
+#include "FSNumbers.h"
+#include "IconPriorities.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -64,7 +66,7 @@ static void init_fs(FS *fs, int fsnumber, const char *fsname)
 
     for (n=0; n < 8; ++n)
     {
-        fs->drive[n].is_removeable = 0;
+        fs->drive[n].is_removeable = n < 4;
         fs->drive[n].is_ejectable  = 0;
         fs->drive[n].is_floppy     = 0;
         fs->drive[n].discname[0] = '\0';
@@ -76,8 +78,8 @@ void test_update(void)
 {
     FS adfs, scsi;
     BarIcon *baricon_list = 0;
-    init_fs(&adfs,  8, "ADFS");
-    init_fs(&scsi, 26, "SCSI");
+    init_fs(&adfs, fsnumber_adfs, "ADFS");
+    init_fs(&scsi, fsnumber_SCSIFS, "SCSI");
 
     // Check adding the first drive
     sprintf(adfs.drive[4].discname, "Harddisc4");
@@ -85,10 +87,10 @@ void test_update(void)
     baricon_list = baricon_update(baricon_list, &adfs, NULL);
 
     CHECK_EQ(create_count, 1)
-    CHECK_NOT_NULL(baricon_find(baricon_list, 8, 4))
+    CHECK_NOT_NULL(baricon_find(baricon_list, fsnumber_adfs, 4))
     CHECK_NOT_NULL(baricon_find_icon(baricon_list, 1))
 
-    CHECK_EQ(baricon_find     (baricon_list, 8, 4)->handle, 1);
+    CHECK_EQ(baricon_find     (baricon_list, fsnumber_adfs, 4)->handle, 1);
     CHECK_EQ(baricon_find_icon(baricon_list, 1)->fsnumber,  8);
     CHECK_EQ(baricon_find_icon(baricon_list, 1)->drive,     4);
 
@@ -98,11 +100,11 @@ void test_update(void)
     baricon_list = baricon_update(baricon_list, &adfs, NULL);
 
     CHECK_EQ(create_count, 2);
-    CHECK_EQ(baricon_find     (baricon_list, 8, 4)->handle, 1);
+    CHECK_EQ(baricon_find     (baricon_list, fsnumber_adfs, 4)->handle, 1);
     CHECK_EQ(baricon_find_icon(baricon_list, 1)->fsnumber,  8);
     CHECK_EQ(baricon_find_icon(baricon_list, 1)->drive,     4);
 
-    CHECK_EQ(baricon_find     (baricon_list, 8, 5)->handle, 2);
+    CHECK_EQ(baricon_find     (baricon_list, fsnumber_adfs, 5)->handle, 2);
     CHECK_EQ(baricon_find_icon(baricon_list, 2)->fsnumber,  8);
     CHECK_EQ(baricon_find_icon(baricon_list, 2)->drive,     5);
 
@@ -113,10 +115,10 @@ void test_update(void)
 
     CHECK_EQ(delete_count, 1);
 
-    CHECK_IS_NULL(baricon_find     (baricon_list, 8, 4) );
+    CHECK_IS_NULL(baricon_find     (baricon_list, fsnumber_adfs, 4) );
     CHECK_IS_NULL(baricon_find_icon(baricon_list, 1)    );
 
-    CHECK_EQ(baricon_find     (baricon_list, 8, 5)->handle, 2);
+    CHECK_EQ(baricon_find     (baricon_list, fsnumber_adfs, 5)->handle, 2);
     CHECK_EQ(baricon_find_icon(baricon_list, 2)->fsnumber,  8);
     CHECK_EQ(baricon_find_icon(baricon_list, 2)->drive,     5);
 
@@ -142,12 +144,13 @@ void test_update(void)
 
 void test_positioning(void)
 {
-    FS adfs, scsi;
+    FS adfs, scsi, ram;
     BarIcon *baricon_list = 0;
     unsigned n;
 
-    init_fs(&adfs, 8,  "ADFS");
-    init_fs(&scsi, 26, "SCSI");
+    init_fs(&adfs, fsnumber_adfs,   "ADFS");
+    init_fs(&scsi, fsnumber_SCSIFS, "SCSI");
+    init_fs(&ram,  fsnumber_ramfs,  "RAMFS");
 
     create_count = 0;
 
@@ -167,8 +170,8 @@ void test_positioning(void)
     sprintf(adfs.drive[0].discname, ":0");
     baricon_list = baricon_update(baricon_list, &adfs, NULL);
     CHECK_EQ(create_count, 3);
-    CHECK_EQ(last_create.window, -3)
-    CHECK_EQ(last_create.priority, 1);
+    CHECK_EQ(last_create.window, -5) /* Created in a new list, as it's a floppy disc */
+    CHECK_EQ(last_create.priority, 0x68000000)
 
     // Add another FS
     adfs.next = &scsi;
@@ -178,11 +181,21 @@ void test_positioning(void)
     CHECK_EQ(last_create.window, -4)
     CHECK_EQ(last_create.priority, 2);
 
+    baricon_list = baricon_update(baricon_list, &ram, NULL);
+
+    // Add a third FS (which has a different priority)
+    scsi.next = &ram;
+    sprintf(ram.drive[0].discname, "RAMDisc0");
+    baricon_list = baricon_update(baricon_list, &ram, NULL);
+    CHECK_EQ(last_create.window, -5)
+    CHECK_EQ(last_create.priority, 0x40000000);
+
     // Clear everything
     for (n = 0; n< 8; ++n)
     {
         adfs.drive[n].discname[0] = '\0';
         scsi.drive[n].discname[0] = '\0';
+        ram.drive[n].discname[0]  = '\0';
     }
 
     baricon_list = baricon_update(baricon_list, &adfs, NULL);
@@ -227,7 +240,7 @@ void test_changes(void)
     icon.drives = 1<<4;
     icon.next = NULL;
 
-    init_fs(&adfs, 8, "ADFS");
+    init_fs(&adfs, fsnumber_adfs, "ADFS");
 
     create_count = 0;
 

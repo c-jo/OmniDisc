@@ -38,6 +38,7 @@ LIBS       = ${CLIB}
 OBJS       = o.TestIcons \
              o.Icon \
              o.StringUtils \
+             o.FSDefaults \
 
 # Space separated list of XML files for building documentation.
 #DOCSRC = <prm-in-xml-sources>

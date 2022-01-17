@@ -1,0 +1,20 @@
+/*******************************************************************
+ * File:        FSNumbers
+ * Purpose:     Constants for FS numbers we use
+ * Date:        16 Jan 2022
+ ******************************************************************/
+
+#ifndef FSNUMBERS_H
+#define FSNUMBERS_H
+
+/* FSNumbers we care about - sourced from Hdr:FSNumbers */
+#define fsnumber_none           0
+#define fsnumber_net            5
+#define fsnumber_adfs           8
+#define fsnumber_ramfs          23
+#define fsnumber_SCSIFS         26
+#define fsnumber_CDFS           37
+#define fsnumber_resourcefs     46
+#define fsnumber_ShareFS        99
+
+#endif

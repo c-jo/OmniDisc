@@ -1,0 +1,93 @@
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <assert.h>
+
+#include "FSDefaults.h"
+#include "FSNumbers.h"
+#include "IconPriorities.h"
+
+int npass = 0;
+int nfail = 0;
+
+void test_default_sprite(int fsnumber, bool is_removeable,
+                         const char *expect)
+{
+    const char *result;
+    printf("Testing %3i, %s : ", fsnumber, is_removeable ? "removeable" : "fixed     ");
+    result = fsdefaults_sprite(fsnumber, is_removeable);
+    if (strcmp(expect, result) == 0)
+    {
+        printf("OK\n");
+        npass++;
+    }
+    else
+    {
+        printf("FAIL: Expected '%s', Got '%s'\n", expect, result);
+        nfail++;
+    }
+}
+
+void test_default_priority(int fsnumber, bool is_removeable,
+                           unsigned long expect)
+{
+    unsigned long result;
+    printf("Testing %3i, %s : ", fsnumber, is_removeable ? "removeable" : "fixed     ");
+    result = fsdefaults_priority(fsnumber, is_removeable);
+    if (expect == result)
+    {
+        printf("OK\n");
+        npass++;
+    }
+    else
+    {
+        printf("FAIL: Expected &%lx, Got &%lx\n", expect, result);
+        nfail++;
+    }
+}
+
+void test_sprite(void)
+{
+    printf("\nTesting sprites lookup...\n");
+    test_default_sprite(fsnumber_none,      true,   "floppydisc");
+    test_default_sprite(fsnumber_none,      false,  "harddisc");
+
+    /* RAMFS uses the same icon, because it declares itself as removeable */
+    test_default_sprite(fsnumber_ramfs,     true,   "ramfs");
+    test_default_sprite(fsnumber_ramfs,     false,  "ramfs");
+
+    /* ADFS isn't defined because it uses the fallback */
+    test_default_sprite(fsnumber_adfs,      true,   "floppydisc");
+    test_default_sprite(fsnumber_adfs,      false,  "harddisc");
+}
+
+void test_priority(void)
+{
+    printf("\nTesting priority lookup...\n");
+    test_default_priority(fsnumber_none,    true,   PRIORITY_FLOPPYDISC);
+    test_default_priority(fsnumber_none,    false,  PRIORITY_HARDDISC);
+
+    /* RAMFS uses the same priority, because it declares itself as removeable */
+    test_default_priority(fsnumber_ramfs,   true,   PRIORITY_VOLATILE);
+    test_default_priority(fsnumber_ramfs,   false,  PRIORITY_VOLATILE);
+
+    /* ResourceFS uses the same priority - it doesn't have a removeable property (and isn't FileCore anyhow) */
+    test_default_priority(fsnumber_resourcefs,  true,   PRIORITY_ACCELERATOR);
+    test_default_priority(fsnumber_resourcefs,  false,  PRIORITY_ACCELERATOR);
+
+    /* ADFS isn't defined because it uses the fallback */
+    test_default_priority(fsnumber_adfs,    true,   PRIORITY_FLOPPYDISC);
+    test_default_priority(fsnumber_adfs,    false,  PRIORITY_HARDDISC);
+}
+
+int main(void)
+{
+    test_sprite();
+    test_priority();
+
+    printf("\nResults:\n");
+    printf("Pass:   %i\n", npass);
+    printf("Fail:   %i\n", nfail);
+
+    return nfail ? EXIT_FAILURE : EXIT_SUCCESS;
+}

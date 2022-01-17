@@ -4,6 +4,7 @@
 
 #include "Test.h"
 #include "Icon.h"
+#include "FSNumbers.h"
 
 #define SHOW_PASS 0
 
@@ -13,41 +14,41 @@ void test_match(void)
 
     // Should match any ADFS drive
     strcpy(i1.sprite,"test1");
-    i1.fsnumber = 8;
+    i1.fsnumber = fsnumber_adfs;
     strcpy(i1.disc,  "");
     i1.drives  = -1;
 
-    CHECK_GT(icon_match(&i1, 8, "HardDisc4" ,4), 0);
-    CHECK_GT(icon_match(&i1, 8, "HARDDISC4" ,4), 0);
-    CHECK_GT(icon_match(&i1, 8, "14_14_Fri" ,0), 0);
-    CHECK_GT(icon_match(&i1, 8, ""          ,1), 0);
+    CHECK_GT(icon_match(&i1, fsnumber_adfs, "HardDisc4" ,4), 0);
+    CHECK_GT(icon_match(&i1, fsnumber_adfs, "HARDDISC4" ,4), 0);
+    CHECK_GT(icon_match(&i1, fsnumber_adfs, "14_14_Fri" ,0), 0);
+    CHECK_GT(icon_match(&i1, fsnumber_adfs, ""          ,1), 0);
 
-    CHECK_EQ(icon_match(&i1, 26, "Thumbdrive",0), 0);
-    CHECK_EQ(icon_match(&i1, 26, "CardOne"   ,4), 0);
+    CHECK_EQ(icon_match(&i1, fsnumber_SCSIFS, "Thumbdrive",0), 0);
+    CHECK_EQ(icon_match(&i1, fsnumber_SCSIFS, "CardOne"   ,4), 0);
 
     // Match hard drives only
     i1.drives = 0xf0;
-    CHECK_GT(icon_match(&i1,8, "HardDisc4",4), 0);
-    CHECK_EQ(icon_match(&i1,8, "14_14_Fri",0), 0);
+    CHECK_GT(icon_match(&i1,fsnumber_adfs, "HardDisc4",4), 0);
+    CHECK_EQ(icon_match(&i1,fsnumber_adfs, "14_14_Fri",0), 0);
 
     // Match floppy discs only
     i1.drives = 0x0f;
-    CHECK_EQ(icon_match(&i1,8,"HardDisc4",4), 0);
-    CHECK_GT(icon_match(&i1,8,"14_14_Fri",0), 0);
+    CHECK_EQ(icon_match(&i1,fsnumber_adfs,"HardDisc4",4), 0);
+    CHECK_GT(icon_match(&i1,fsnumber_adfs,"14_14_Fri",0), 0);
 
     i1.drives = -1;
 
     // Match a disc name
     strcpy(i1.disc, "15_30_Tue");
-    CHECK_EQ(icon_match(&i1, 8,"HardDisc4",4), 0);
-    CHECK_GT(icon_match(&i1, 8,"15_30_Tue",0), 0);
-    CHECK_EQ(icon_match(&i1,26,"15_30_Tue",0), 0);
+    CHECK_EQ(icon_match(&i1, fsnumber_adfs,"HardDisc4",4), 0);
+    CHECK_GT(icon_match(&i1, fsnumber_adfs,"15_30_Tue",0), 0);
+    CHECK_EQ(icon_match(&i1,fsnumber_SCSIFS,"15_30_Tue",0), 0);
 
     // Match a drive number
     strcpy(i1.disc, "");
     i1.drives = 1<<4;
-    CHECK_GT(icon_match(&i1,8,"HardDisc4",4), 0);
-    CHECK_EQ(icon_match(&i1,8,"15_30_Tue",0), 0);
+    CHECK_GT(icon_match(&i1,fsnumber_adfs,"HardDisc4",4), 0);
+    CHECK_EQ(icon_match(&i1,fsnumber_adfs,"15_30_Tue",0), 0);
 }
 
 void test_compare(void)
@@ -60,61 +61,61 @@ void test_compare(void)
 
     // any ADFS drive
     strcpy(i1.sprite,"test1");
-    i1.fsnumber = 8;
+    i1.fsnumber = fsnumber_adfs;
     strcpy(i1.disc,  "");
     i1.drives = -1;
 
     // A given drive number
     strcpy(i2.sprite,"test2");
-    i2.fsnumber = 8;
+    i2.fsnumber = fsnumber_adfs;
     strcpy(i2.disc,  "");
     i2.drives = 1<<4;
 
     // A given disc name
     strcpy(i3.sprite,"test3");
-    i3.fsnumber = 8;
+    i3.fsnumber = fsnumber_adfs;
     strcpy(i3.disc,  "HardDisc4");
     i3.drives = -1;
 
     // A given disc name and drive number
     strcpy(i4.sprite,"test4");
-    i4.fsnumber = 8;
+    i4.fsnumber = fsnumber_adfs;
     strcpy(i4.disc,  "HardDisc4");
     i4.drives = 1<<4;
 
     // A name match should be higher than drive number one
-    assert(icon_match(&i3, 8, "HardDisc4", 4) >
-           icon_match(&i2, 8, "HardDisc4", 4));
+    assert(icon_match(&i3, fsnumber_adfs, "HardDisc4", 4) >
+           icon_match(&i2, fsnumber_adfs, "HardDisc4", 4));
 
     // A drive match is higher than a FS one
-    assert(icon_match(&i2, 8, "HardDisc4", 4) >
-           icon_match(&i1, 8, "HardDisc4", 4));
+    assert(icon_match(&i2, fsnumber_adfs, "HardDisc4", 4) >
+           icon_match(&i1, fsnumber_adfs, "HardDisc4", 4));
 
     // Find an icon
-    CHECK_STRING(icon_find(&i1, 8, "03_04_Mon",2), "test1");
-    CHECK_STRING(icon_find(&i1, 8, "Winnie4"  ,4), "test2");
-    CHECK_STRING(icon_find(&i1, 8, "HardDisc4",5), "test3");
-    CHECK_STRING(icon_find(&i1, 8, "HardDisc4",4), "test4");
+    CHECK_STRING(icon_find(&i1, fsnumber_adfs, "03_04_Mon",2), "test1");
+    CHECK_STRING(icon_find(&i1, fsnumber_adfs, "Winnie4"  ,4), "test2");
+    CHECK_STRING(icon_find(&i1, fsnumber_adfs, "HardDisc4",5), "test3");
+    CHECK_STRING(icon_find(&i1, fsnumber_adfs, "HardDisc4",4), "test4");
 
     // Fall back to default
     CHECK_STRING(icon_find(&i1, 192,"Card0"  ,0), "floppydisc");
-    CHECK_STRING(icon_find(&i1,  23,"BigDisc",4), "harddisc"  );
+    CHECK_STRING(icon_find(&i1, fsnumber_ramfs,"BigDisc",4), "ramfs"  );
 }
 
 void test_list(void)
 {
     Icon *icons = 0;
     // Add one
-    CHECK_ERROR(icon_add(&icons, "harddisc", 8, "HardDisc4", 1<<4));
+    CHECK_ERROR(icon_add(&icons, "harddisc", fsnumber_adfs, "HardDisc4", 1<<4));
     CHECK_NOT_NULL(icons);
     CHECK_IS_NULL(icons->next);
 
-    CHECK_EQ(icons->fsnumber, 8);
+    CHECK_EQ(icons->fsnumber, fsnumber_adfs);
     CHECK_STRING(icons->disc,  "HardDisc4");
     CHECK_STRING(icons->sprite,"harddisc");
 
     // Add another
-    CHECK_ERROR(icon_add(&icons, "harddisc", 8, "HardDisc5", 1<<5));
+    CHECK_ERROR(icon_add(&icons, "harddisc", fsnumber_adfs, "HardDisc5", 1<<5));
     CHECK_NOT_NULL(icons->next);
     CHECK_IS_NULL(icons->next->next);
     CHECK_STRING(icons->disc,       "HardDisc4");
@@ -122,29 +123,29 @@ void test_list(void)
     CHECK_EQ(icons->next->drives, 1<<5);
 
     // this should be an error
-    CHECK_NOT_NULL(icon_add(&icons, "harddisc", 8, "HardDisc5", 1<<5));
+    CHECK_NOT_NULL(icon_add(&icons, "harddisc", fsnumber_adfs, "HardDisc5", 1<<5));
 
     // Remove it
-    CHECK_ERROR(icon_remove(&icons, 8, "HardDisc5", 1<<5));
+    CHECK_ERROR(icon_remove(&icons, fsnumber_adfs, "HardDisc5", 1<<5));
     CHECK_NOT_NULL(icons);
     CHECK_IS_NULL(icons->next);
-    CHECK_EQ(icons->fsnumber, 8);
+    CHECK_EQ(icons->fsnumber, fsnumber_adfs);
     CHECK_STRING(icons->disc,  "HardDisc4");
     CHECK_STRING(icons->sprite,"harddisc");
 
     // this should be an error
-    CHECK_NOT_NULL(icon_remove(&icons, 8, "HardDisc5", 1<<5));
+    CHECK_NOT_NULL(icon_remove(&icons, fsnumber_adfs, "HardDisc5", 1<<5));
 
-    CHECK_ERROR(icon_add(&icons, "harddisc", 8,  "HardDisc6", 1<<6));
-    CHECK_ERROR(icon_add(&icons, "switcher", 8,  "HardDisc7", 1<<7));
-    CHECK_ERROR(icon_add(&icons, "file_fff", 23, "SCSIdisc",  1<<4));
+    CHECK_ERROR(icon_add(&icons, "harddisc", fsnumber_adfs,  "HardDisc6", 1<<6));
+    CHECK_ERROR(icon_add(&icons, "switcher", fsnumber_adfs,  "HardDisc7", 1<<7));
+    CHECK_ERROR(icon_add(&icons, "file_fff", fsnumber_SCSIFS, "SCSIdisc",  1<<4));
 
-    icon_remove_fs(&icons, 8);
+    icon_remove_fs(&icons, fsnumber_adfs);
 
     CHECK_NOT_NULL(icons);
-    CHECK_EQ(icons->fsnumber, 23);
+    CHECK_EQ(icons->fsnumber, fsnumber_SCSIFS);
 
-    CHECK_ERROR(icon_add(&icons, "harddisc", 8, "NewHD", 0xf0));
+    CHECK_ERROR(icon_add(&icons, "harddisc", fsnumber_adfs, "NewHD", 0xf0));
     CHECK_NOT_NULL(icons);
     CHECK_NOT_NULL(icons->next);
     CHECK_EQ(icons->next->drives, 0xf0);

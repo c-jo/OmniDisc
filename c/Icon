@@ -3,12 +3,14 @@
 #include <string.h>
 #include "swis.h"
 
+#include "FSDefaults.h"
 #include "Icon.h"
 #include "StringUtils.h"
 
 #ifdef FORTIFY
 #include "fortify.h"
 #endif
+
 
 static _kernel_oserror err_Memory      = { 0, "Couldn't allocate memory" };
 static _kernel_oserror err_NotFound    = { 0, "Icon not found." };
@@ -243,6 +245,6 @@ const char *icon_find(Icon* list,
     if (s)
         return s;
 
-    return (drive < 4) ? "floppydisc" : "harddisc";
+    return fsdefaults_sprite(fsnumber, (drive < 4) ? true : false);
 }
 

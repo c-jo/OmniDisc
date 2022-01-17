@@ -4,6 +4,7 @@
 #include <assert.h>
 
 #include "FS.h"
+#include "FSNumbers.h"
 
 fsparameters_t *fsp_dup(fsparameters_t *src)
 {
@@ -16,8 +17,8 @@ void test_list(void)
 {
     FS *fs_list = NULL;
     FS *newfs1, *newfs2;
-    fsparameters_t fsp1 = { "ADFS", "ADFS", 8 };
-    fsparameters_t fsp2 = { "RamFS", "RAMFS", 23 };
+    fsparameters_t fsp1 = { "ADFS", "ADFS", fsnumber_adfs };
+    fsparameters_t fsp2 = { "RamFS", "RAMFS", fsnumber_ramfs };
 
     assert(fs_add(&fs_list, fsp_dup(&fsp1), &newfs1) == NULL);
     assert(fs_list != NULL);

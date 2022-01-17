@@ -1,5 +1,6 @@
 #include "BarIcon.h"
 #include "Icon.h"
+#include "FSDefaults.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -38,14 +39,41 @@ static void baricon_position(FS *fs_list, BarIcon *baricon_list,
     int clown = -2; // Clowns to the left of me
     int joker = -2; // Jokers to my right
     FS *fs;
+    bool is_removeable = false;
+    int n;
+
+    /* We want to only consider filing systems which have the same priority
+     * as the drive we're adding, so that we add similar filing systems in
+     * consistent order together.
+     * First we find the drive in the current list of filesystems so that we
+     * can add it appropriately.
+     */
+    unsigned long priority = 0;
+
+    for (fs = fs_list; fs; fs = fs->next)
+    {
+        if (fs->fsparams->fsnumber == fsnumber)
+        {
+            priority = fsdefaults_priority(fsnumber, fs->drive[drive].is_removeable);
+        }
+    }
 
     // Find an icon to put ours next to, if we can
     for (fs = fs_list; fs; fs = fs->next)
     {
-        int n;
+        int fsn = fs->fsparams->fsnumber;
         for (n = 0; n < 8; ++n)
         {
-            int fsn = fs->fsparams->fsnumber;
+            int pri = fsdefaults_priority(fsnumber, fs->drive[n].is_removeable);
+#ifdef DEBUG
+            printf("FS %i, drive %i has priority %08x (we want %08x)\n", fsn, n, pri, priority);
+#endif
+            if (priority != 0 && pri != priority)
+            {
+                /* Skip this drive as it's not in the same priority group */
+                continue;
+            }
+
             if (fsn == fsnumber && n == drive)
             {
 #ifdef DEBUG
@@ -90,8 +118,11 @@ static void baricon_position(FS *fs_list, BarIcon *baricon_list,
     }
     else
     {
+        /* There was no existing icon for this filing system, so we just place it on the
+         * left with the default priority for that filing system.
+         */
         *pos  = -5;         // Left side, high
-        *icon = 0x70000000; // priority.
+        *icon = priority;   // priority
     }
 }
 
