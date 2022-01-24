@@ -28,3 +28,13 @@ int stricmp(const char *a, const char *b)
     }
     return 0;
 }
+
+void strshift(char *str, int offset)
+{
+    char *sp = str+strlen(str)+1;
+    while (sp >= str)
+    {
+        *(sp+offset) = *sp;
+        sp--;
+    }
+}

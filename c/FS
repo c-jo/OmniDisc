@@ -130,3 +130,16 @@ FS* fs_find_by_name(FS *list, const char *fsname)
             break;
     return list;
 }
+
+/*******************************************************************
+ Function:      fs_get_default_dir
+ Description:   Find tne default directory for a given FS / drive.
+ Parameters:    FS   -> the FS object
+                drive = the FS name to find.
+ Returns:       the default directory for the given FS / drive. The
+                sting should be copied before the next call.
+ ******************************************************************/
+char *fs_get_default_dir(FS *fs, int drivenumber)
+{
+    return "$";
+}

@@ -9,6 +9,7 @@ OBJS        = FilerX \
 			  Tools \
 			  FS \
 			  FSParameters \
+			  FSDefaults \
 			  BarIcon \
 			  Commands \
 			  StringUtils

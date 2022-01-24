@@ -2,6 +2,8 @@
 #include "Tools.h"
 #include "swis.h"
 
+#include "kernel.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -12,6 +14,7 @@
 
 #include "ShareFS.h"
 #include "BarIcon.h"
+#include "StringUtils.h"
 
 /* Define this to add in the support for checking discs */
 #define SUPPORT_CHECK
@@ -464,9 +467,113 @@ static void menu_selection(WimpMenuSelectionEvent *event)
     }
 }
 
+static char *get_default_dir(int icon)
+{
+    static char defaultdir[128];
+    BarIcon *bi = baricon_find_icon(baricons, icon);
+    FS      *fs = bi ? fs_find_by_number(fses, bi->fsnumber) : 0;
+
+    if (!fs)
+        return 0;
+
+    if (fs->drive[bi->drive].discname[0])
+        sprintf(defaultdir, "%s::%s.", fs->fsparams->fsname,
+                                       fs->drive[bi->drive].discname);
+    else
+        sprintf(defaultdir, "%s:%d.",  fs->fsparams->fsname, bi->drive);
+
+    return strcat(defaultdir, "$");
+}
+
+static void message_datasave(WimpUserMessageEvent* msg)
+{
+    if (msg->data.data_save.destination_window != WimpWindow_Iconbar)
+        return;
+
+    if (_swi(OS_Byte, _INR(0,1)|_RETURN(1), 121, 0x82)) // Alt Pressed?
+    {
+        if (msg->data.data_load.file_type != 0xff9)
+            return;
+
+        strcpy(msg->data.data_save.leaf_name, "<Wimp$Scrap>");
+        msg->data.data_save.estimated_size = -1;
+    }
+    else
+    {
+        char *defaultdir = get_default_dir(
+                               msg->data.data_save.destination_icon);
+        char *filename = msg->data.data_save.leaf_name;
+
+        strshift(filename, strlen(defaultdir)+1);
+        strcpy(filename,defaultdir);
+        filename[strlen(filename)] = '.';
+    }
+
+    msg->hdr.action_code = Wimp_MDataSaveAck;
+    msg->hdr.your_ref = msg->hdr.my_ref;
+    msg->hdr.size = 44 + (strlen(msg->data.data_save_ack.leaf_name) | 3) + 1;
+    _swi(Wimp_SendMessage, _INR(0,2), Wimp_EUserMessage,
+                                      msg, msg->hdr.sender);
+}
+
+static void message_dataload(WimpUserMessageEvent* msg)
+{
+    if (msg->data.data_load.destination_window == WimpWindow_Iconbar)
+     {
+         char *opendir = "%Filer_OpenDir";
+         int alt = _swi(OS_Byte, _INR(0,1)|_RETURN(1), 121, 0x82);
+
+         if (msg->hdr.your_ref == 0 && !alt) // From filer, alt not pressed
+         {
+             char *cmd;
+             strcpy(msg->data.bytes, get_default_dir(
+                                         msg->data.data_load.destination_icon));
+             msg->hdr.action_code = Wimp_MFilerDevicePath;
+             msg->hdr.your_ref = msg->hdr.my_ref;
+             _swi(Wimp_SendMessage, _INR(0,2),
+                      Wimp_EUserMessage, msg, msg->hdr.sender);
+
+             cmd = msg->data.bytes;
+             strshift(cmd, strlen(opendir)+1);
+             strcpy(cmd, opendir);
+             cmd[strlen(cmd)] = ' ';
+             _swix(OS_CLI, _IN(0), cmd);
+         }
+         else
+         {
+             if (alt)
+             {
+                 if (msg->data.data_load.file_type != 0xff9)
+                     return;
+
+                 // **TODO** Sprite file contrains the sprite to use for this
+                // disc.
+             }
+
+             msg->hdr.action_code = Wimp_MDataLoadAck;
+             msg->hdr.your_ref = msg->hdr.my_ref;
+             _swi(Wimp_SendMessage, _INR(0,2),
+                      Wimp_EUserMessage, msg, msg->hdr.sender);
+
+             if (!alt)
+             {
+                 char *filename = msg->data.data_load.leaf_name;
+                 char *lastdot = strrchr(filename, '.');
+                 if (!lastdot)
+                     return;
+                 *lastdot= '\0';
+                 strshift(filename, strlen(opendir)+2);
+                 strcpy(filename, opendir);
+                 filename[strlen(filename)] = ' ';
+                 _swix(OS_CLI, _IN(0), filename);
+             }
+         }
+     }
+}
+
 int main(int argc, char *argv[])
 {
-    int message_list[] = { 0 };
+    int message_list[] = { 0 }; // **TODO**
     bool quit = false;
     UNUSED(argc);
     UNUSED(argv);
@@ -492,15 +599,15 @@ int main(int argc, char *argv[])
 
         switch (reason)
         {
-        case 6: // Mouse Click
+        case Wimp_EMouseClick:
             mouse_click((WimpMouseClickEvent*)poll_block);
             break;
 
-        case 9: // Menu Selection
+        case Wimp_EMenuSelection:
             menu_selection((WimpMenuSelectionEvent*)poll_block);
             break;
 
-        case 13: // Pollword Non-Zero
+        case Wimp_EPollWordNonZero:
             {
                 if (pollword & Pollword_Drive)
                     baricons = baricon_update(baricons, fses, icons);
@@ -511,17 +618,26 @@ int main(int argc, char *argv[])
             }
             break;
 
-        case 17: // User Message
-        case 18: // User Message Recorded
+        case Wimp_EUserMessage:
+        case Wimp_EUserMessageRecorded:
             {
             WimpUserMessageEvent *msg = (WimpUserMessageEvent*)poll_block;
 
-            if (msg->hdr.action_code == 0) // Quit
+            switch (msg->hdr.action_code)
             {
+            case Wimp_MQuit:
                 quit = true;
                 break;
+
+            case Wimp_MDataSave:
+                message_datasave(msg);
+                break;
+
+            case Wimp_MDataLoad:
+                message_dataload(msg);
+                break;
             }
-            
+
             break;
             }
         }
