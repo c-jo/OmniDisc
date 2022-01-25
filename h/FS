@@ -57,14 +57,31 @@ _kernel_oserror *fs_add(FS **list, fsparameters_t *params, FS **newfs);
 _kernel_oserror *fs_remove(FS **list, const char *fsname);
 
 /*******************************************************************
- Function:      fs_find
- Description:   Find a FS for the given fs_params.
+ Function:      fs_find_by_number
+ Description:   Find a FS for the given fs number
  Parameters:    list    -> current head of the FS list
-                fsnumber = the FS number to find.
+                fsnumber = the FS number to find
  Returns:       pointer to the FS, or NULL if not found.
  ******************************************************************/
 FS* fs_find_by_number(FS *list, int fsnumber);
 
+/*******************************************************************
+ Function:      fs_find_by_name
+ Description:   Find a FS for the given name.
+ Parameters:    list   -> current head of the FS list
+                fsname -> name of the FS to find
+ Returns:       pointer to the FS, or NULL if not found.
+ ******************************************************************/
 FS* fs_find_by_name(FS *list, const char *fsname);
+
+/*******************************************************************
+ Function:      fs_get_default_dir
+ Description:   Find tne default directory for a given FS / drive.
+ Parameters:    FS   -> the FS object
+                drive = the FS name to find.
+ Returns:       the default directory for the given FS / drive. The
+                sting should be copied before the next call.
+ ******************************************************************/
+char *fs_get_default_dir(FS *fs, int drivenumber);
 
 #endif // FS_H

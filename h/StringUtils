@@ -1,8 +1,16 @@
 #ifndef STRINGUTILS_H
 #define STRINGUTILS_H
 
+
 char *strdup(const char *src);
 
-int stricmp(const char *a, const char *b);
+int  stricmp(const char *a, const char *b);
+
+/* Moves the string offset bytes along in the buffer.
+   NOTE THAT in the current implementation offset <= 0 is undefined. A later
+   version may handle these cases.
+*/
+
+void strshift(char *str, int offset);
 
 #endif
