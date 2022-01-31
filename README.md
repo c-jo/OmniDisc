@@ -10,7 +10,7 @@ Control of OmniDisc is done with the following star-commands.
 
 This commands is used to manage the filing systems OmniDisc is providing icons for.
 
-### \*OmniDisc_FS -add _\<FSName\>_ [-fdnames]
+### \*OmniDisc_FS -add _\<fsname\>_ [-fdnames]
 
 Adds the specified filing system to OmniDisc. If the -fdnames switch is used, it will attempt to read the names of 'floppy' discs (drives 0-3).
 
@@ -18,7 +18,7 @@ examples:
 `*OmniDisc_FS -add ADFS`  
 `*OmniDisc_FS -add SDFS -fdnames`  
 
-### \*OmniDisc_FS -remove _\<FSName\>_
+### \*OmniDisc_FS -remove _\<fsname\>_
 
 Removes a filing system added with `*OmniDisc_FS -add`.
 
