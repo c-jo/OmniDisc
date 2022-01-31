@@ -5,7 +5,7 @@
 
 /*******************************************************************
  Function:      cmd_desktop
- Description:   Handle the Desktop_FilerX command
+ Description:   Handle the Desktop_OmniDisc command
  Parameters:    arg_string -> the command arguments
                 module     -> module title
  Returns:       pointer to error, or NULL if successful
@@ -15,7 +15,7 @@ _kernel_oserror*cmd_desktop(const char* arg_string,
 
 /*******************************************************************
  Function:      cmd_fs
- Description:   Handle the FilerX_FS command
+ Description:   Handle the OmniDisc_FS command
  Parameters:    arg_string -> the command arguments
  Returns:       pointer to error, or NULL if successful
  ******************************************************************/
@@ -23,7 +23,7 @@ _kernel_oserror*cmd_fs(const char* arg_string);
 
 /*******************************************************************
  Function:      cmd_icon
- Description:   Handle the FilerX_Icon command
+ Description:   Handle the OmniDisc_Icon command
  Parameters:    arg_string -> the command arguments
  Returns:       pointer to error, or NULL if successful
 ******************************************************************/

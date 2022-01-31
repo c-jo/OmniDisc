@@ -114,15 +114,14 @@ const char *build_tool_command(tooloperation_t   tooloperation,
 {
     int form;
     const char *varname;
-    const char *varval;
+    const char *varval =NULL;
 
     dprintf("Building tool command for op %i, type %i, driver %p, CLI=%i, device %i\n",
             tooloperation,
             tooldisctype,
             driver,
             is_cli,
-            device,
-            form);
+            device);
 
     /* Try each form until we find one that is set, or there are none */
     for (form = 0; form < FORM_MAX; form++)

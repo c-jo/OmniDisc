@@ -1,0 +1,29 @@
+;
+; OmniDisc CMHG Header file
+;
+
+module-is-runnable:
+
+help-string:  OmniDisc 0.10
+
+title-string: OmniDisc
+
+initialisation-code: module_initialise
+
+finalisation-code: module_finalise
+
+library-enter-code: module_enter
+
+service-call-handler: module_service 0x27 0x4b 0x4c 0x4f 0x5e 0x97 0x98
+
+generic-veneers: upcall_entry/upcall_handler
+
+command-keyword-table: module_cmd
+    Desktop_OmniDisc(min-args:0, max-args:0,
+                     help-text: "OmniDisc provides disc icons on the icon bar for a number or filing systems and uses the Filer to display directories.\nDo not use *Desktop_OmniDisc, use *Desktop instead."),
+
+    OmniDisc_FS(min-args:1, max-args:3,
+                help-text: "*OmniDIsc_FS can be used to add or remove a filing system to OmniDisc, as well as list those which are currently registered.n\nSuntaax: *OmniDisc_FS -add <fsname> [-fdnames] | -remove <fsname> | -list"),
+
+    OmniDisc_Icon(min-args:1, max-args:8,
+                help-text: "*OmniDIsc_FS can be used to add or remove a filing system to OmniDisc, as well as list those which are currently registered.n\nSuntaax: *OmniDisc_Icon -add | -remove <sprite> [-fs <fsname>] [-disc <discname>] [-drives <drives)] | -list")

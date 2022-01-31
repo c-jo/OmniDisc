@@ -1,11 +1,11 @@
 #!/usr/bin/env riscos-amu -f
-# Makefile for filerx
+# Makefile for OmniDisc
 #
 
 #
 # Program specific options:
 #
-COMPONENT  = filerx
+COMPONENT  = OmniDisc
 
 # Specifies additional targets for startup
 #INITTARGET = inittarget
@@ -37,8 +37,8 @@ CDEFINES   = -DNO_STDBOOL
 # Objects to build, using the format o.<name> (will be varied for build type)
 OBJS       = \
              o.Enter \
-             o.FilerX \
-             o.FilerXHdr \
+             o.OmniDisc \
+             o.OmniDiscHdr \
              o.Main \
              o.FindDrives \
              o.Icon \
@@ -55,7 +55,7 @@ FORTIFY   ?= no
 include CModule
 
 # Additional dependencies
-$(OZDIR).Module ${OZDIR}.FilerX: h.FilerXHdr
+$(OZDIR).Module ${OZDIR}.FilerX: h.OmniDiscHdr
 
 # Export rules
 # For any files you export with EXPORTS you may need to include an

@@ -1,16 +1,12 @@
 #include "Commands.h"
-#include "FilerX.h"
+#include "OmniDisc.h"
+#include "Errors.h"
 
 #include "swis.h"
 
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-
-static _kernel_oserror err_no_memory  = { 0, "No memory" };
-static _kernel_oserror err_cannot_add = { 0, "Cannot add filing system registration" };
-static _kernel_oserror err_FS_Already_Registered = { 0, "Filing system already registered." };
-static _kernel_oserror err_FS_Not_Registered = { 0, "Filing system not registered." };
 
 /*******************************************************************
  Function:      parse_drives
@@ -58,7 +54,7 @@ static int get_fs_number(const char *fsname)
 
 /*******************************************************************
  Function:      cmd_desktop
- Description:   Handle the Desktop_FilerX command
+ Description:   Handle the Desktop_OmniDisc command
  Parameters:    arg_string -> the command arguments
  Returns:       pointer to error, or NULL if successful
  ******************************************************************/
@@ -86,11 +82,11 @@ static _kernel_oserror* add_fs(const char *fsname, bool fd_names)
     FS *newfs = NULL;
 
     if (fs_find_by_name(fses, fsname) != NULL)
-        return &err_FS_Already_Registered;
+        return get_error(Error_FSAlreadyReg);
 
     fsparams = fsparams_create(fsname);
     if (fsparams == NULL)
-        return &err_cannot_add; /* Not ideal - we cannot differentiate memory and FS problems */
+        return get_error(Error_FSCannotAdd); /* Not ideal - we cannot differentiate memory and FS problems */
 
     e = fs_add(&fses, fsparams, &newfs);
     if (e)
@@ -159,7 +155,7 @@ static _kernel_oserror* list_fs(void)
 
 /*******************************************************************
  Function:      cmd_fs
- Description:   Handle the FilerX_FS command
+ Description:   Handle the OmniDisc_FS command
  Parameters:    arg_string -> the command arguments
  Returns:       pointer to error, or NULL if successful
  ******************************************************************/
@@ -176,7 +172,7 @@ _kernel_oserror*cmd_fs(const char* arg_string)
 
     readargs_fs = malloc(bufsize);
     if (!readargs_fs)
-        return &err_no_memory;
+        return get_error(Error_NoMemory);
 
     e = _swix(OS_ReadArgs, _INR(0,3),
                   "add/K,remove/K,list/S,fdnames/S",
@@ -213,7 +209,7 @@ static _kernel_oserror *add_icon(const char *sprite,
 
     fsnumber = get_fs_number(fsname);
     if (fsnumber == 0)
-        return &err_FS_Not_Registered;
+        return get_error(Error_FSNotRegistered);
 
     return icon_add(&icons, sprite,
                      fsnumber, disc, parse_drives(drives));
@@ -233,7 +229,7 @@ static _kernel_oserror *remove_icon(
 {
     int fsnumber = get_fs_number(fsname);
     if (fsnumber == 0)
-        return &err_FS_Not_Registered;
+        return get_error(Error_FSNotRegistered);
 
     return icon_remove(&icons,
                        fsnumber, disc, parse_drives(drives));
@@ -253,7 +249,7 @@ static _kernel_oserror *update_icon(const char *sprite,
 {
     int fsnumber = get_fs_number(fsname);
     if (fsnumber == 0)
-        return &err_FS_Not_Registered;
+        return get_error(Error_FSNotRegistered);
 
     return icon_update(&icons, sprite,
                        fsnumber, disc, parse_drives(drives));
@@ -312,7 +308,7 @@ static _kernel_oserror *list_icons(void)
 
 /*******************************************************************
  Function:      cmd_icon
- Description:   Handle the FilerX_Icon command
+ Description:   Handle the OmniDisc_Icon command
  Parameters:    arg_string -> the command arguments
  Returns:       pointer to error, or NULL if successful
 ******************************************************************/
@@ -332,7 +328,7 @@ _kernel_oserror*cmd_icon(const char* arg_string)
 
     readargs_icon = malloc(bufsize);
     if (!readargs_icon)
-        return &err_no_memory;
+        return get_error(Error_NoMemory);
 
     e = _swix(OS_ReadArgs, _INR(0,3),
                   "add/K,update/K,remove/S,list/S,fs/K,disc/K,drives/K",

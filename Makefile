@@ -1,8 +1,9 @@
 # Makefile for TaskRunner
 
-COMPONENT   = FilerX
-OBJS        = FilerX \
+COMPONENT   = OmniDisc
+OBJS        = OmniDisc \
 			  Main \
+			  Errors \
 			  Enter \
 			  FindDrives \
 			  Icon \
@@ -14,12 +15,11 @@ OBJS        = FilerX \
 			  Commands \
 			  StringUtils
 
-CMHGDEPENDS = FilerX
+CMHGDEPENDS = OmniDisc
 CUSTOMRES   = no
-
 include CModule
 
-#CMHG = SDFS::Chipmunk.$.Work.TaskRunner.CMunge
-#CMHGFLAGS = -32bit
+#CMHG = cmunge
+#CMHGFLAGS =-32bit
 
 # Dynamic dependencies:

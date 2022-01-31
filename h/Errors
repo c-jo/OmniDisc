@@ -1,0 +1,18 @@
+#ifndef ERRORS_H
+#define ERRORS_H
+
+#include "kernel.h"
+
+#define Error_Base 0x821a00
+
+#define Error_Unknown         Error_Base
+#define Error_NoMemory        Error_Base+1
+#define Error_FSNotRegistered Error_Base+2
+#define Error_FSAlreadyReg    Error_Base+3
+#define Error_FSCannotAdd     Error_Base+4
+#define Error_IconNotFound    Error_Base+5
+#define Error_IconAlreadySet  Error_Base+6
+
+_kernel_oserror *get_error(int errno);
+
+#endif
