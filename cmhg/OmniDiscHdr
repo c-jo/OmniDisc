@@ -32,4 +32,4 @@ command-keyword-table: module_cmd
     OmniDisc_Icon(min-args:1, max-args:8,
         help-text: "*OmniDIsc_Icon can is used to select which icon is used for a given filing system, disc or drive, or to list which icons are currently selected.\n",
         add-syntax:,
-        invalid-syntax: "Syntax: *OmniDisc_Icon -add | -remove <sprite> [-fs <fsname>] [-disc <discname>] [-drives <drives)] | -list")
+        invalid-syntax: "Syntax: *OmniDisc_Icon -add | -update <icon> | -remove [-fs <fsname>] [-disc <discname>] [-drives <drives)] | -list")
