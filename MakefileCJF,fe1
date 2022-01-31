@@ -49,25 +49,27 @@ OBJS       = \
              o.BarIcon \
              o.Commands \
              o.StringUtils \
+             o.Errors \
+
 
 FORTIFY   ?= no
 
 include CModule
 
 # Additional dependencies
-$(OZDIR).Module ${OZDIR}.FilerX: h.OmniDiscHdr
+$(OZDIR).Module ${OZDIR}.OmniDisc: h.OmniDiscHdr
 
 # Export rules
 # For any files you export with EXPORTS you may need to include an
 # export rule
-${EXP_C_H}.${COMPONENT}SWIs: cmhg.modhead
-       ${CMHG} ${CMHGFLAGS} -xh $@ cmhg.modhead
+${EXP_C_H}.${COMPONENT}SWIs: cmhg.OmniDisc
+       ${CMHG} ${CMHGFLAGS} -xh $@ cmhg.OmniDisc
 # To export bare files you can use the ${CP} command:
 # ${EXP_LIB}.${COMPONENT}.h.myheader: h.myheader
 #        ${CP} $?  $@  ${CPFLAGS}
 
 cleantarget:
-           ${RM} h.modhead
+           ${RM} h.OmniDiscHdr
 # This clean target removes any module header file that was built.
 
 #---------------------------------------------------------------------------
