@@ -1,5 +1,7 @@
 #include "OmniDisc.h"
 #include "Tools.h"
+#include "Wimp.h"
+
 #include "swis.h"
 
 #include "kernel.h"

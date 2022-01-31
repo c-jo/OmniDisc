@@ -2,7 +2,6 @@
 #define OMNIDISC_H
 
 #include "bool.h"
-#include "Wimp.h"
 
 #include "FS.h"
 #include "Icon.h"

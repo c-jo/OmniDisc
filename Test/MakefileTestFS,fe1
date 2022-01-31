@@ -39,6 +39,7 @@ OBJS       = o.TestFS \
              o.FS \
              o.FSParameters \
              o.StringUtils \
+             o.Errors \
 
 # Space separated list of XML files for building documentation.
 #DOCSRC = <prm-in-xml-sources>
