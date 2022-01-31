@@ -10,20 +10,20 @@ Control of OmniDisc is done with the following star-commands.
 
 This commands is used to manage the filing systems OmniDisc is providing icons for.
 
-### \*OmniDisc_FS -add <FSName> [-fdnames]
+### \*OmniDisc_FS -add _\<FSName\>_ [-fdnames]
 
 Adds the specified filing system to OmniDisc. If the -fdnames switch is used, it will attempt to read the names of 'floppy' discs (drives 0-3).
 
 examples:  
-\*OmniDisc_FS -add ADFS  
-\*OmniDisc_FS -add SDFS -fdnames  
+`*OmniDisc_FS -add ADFS`  
+`*OmniDisc_FS -add SDFS -fdnames`  
 
-### \*OmniDisc_FS-remove <FSName>
+### \*OmniDisc_FS -remove _\<FSName\>_
 
-Removes a filing system added with *OmniDisc_AddFS.
+Removes a filing system added with `*OmniDisc_FS -add`.
 
 example:  
-\*OmniDisc_FS -remove ADFS  
+`*OmniDisc_FS -remove ADFS`  
 
 ### \*OmniDisc_FS -list
 
@@ -35,28 +35,33 @@ Icons will be created in the order the filing systems are registered in.
 
 This command is used to manage the icons displayed for the drives.
 
-### \*OmniDisc_Icon -add <sprite> [-fs <fsname>] [-disc <discname>] [-drives <drives list>]
+### \*OmniDisc_Icon -add _\<sprite\>_ [-fs _\<fsname\>_] [-disc _\<discname\>_] [-drives _\<drives list\>_]
 
 Sets the icon to use for the specified drives. The icon must exist in the wimp sprite pool.
 
 The `-fs`, `-disc` and `-drives` are all optional, and if not specified the icon will be used for 'any' of the missing specifier. The drives list is a string of drives to apply the icon to. eg '45' would match drives 4 and 5, '0123' would match all the 'floppy' discs.
 
-examples:
-... `-fs ADFS` will use the given sprite for all ADFS drives.  
-... `-fs SCSI -disc MyDisc` will use it for MyDisc on SCSI.  
-... `-fs SCSI -drives 4` will use it for drive 4 on SCSI.  
-... `-fs SDFS -disc MyCard -drives 0` will use it for a disc called MyCard on SDFS drive 0.  
+examples:  
+`OmniDisc_Icon -add harddisc -fs ADFS` set the sprite for all ADFS drives.  
+`OmniDisc_Icon -add floppy -fs SCSI -disc MyDisc` set the sprite MyDisc on SCSI.  
+`OmniDisc_Icon -add harddisc -fs SCSI -drives 4` set the sprite drive 4 on SCSI.  
+`OmniDisc_Icon -add sdcard -fs SDFS -disc MyCard -drives 0` set the sprite for a disc called MyCard on SDFS drive 0.  
 
 When more than one icon can be used, the more specific one will be picked.
 
+### \*OmniDisc_Icon -update _\<sprite\>_ [-fs _\<fsname\>_] [-disc _\<discname\>_] [-drives _\<drives list\>_]
 
-### \*OmniDisc_Icon -update <sprite> [-fs <fsname>] [-disc <discname>] [-drives <drives list>]
+Updates (ie. changes the sprite of) an icon added with `*OmniDisc_Icon -add`.
 
-Updates an icon added with *OmniDisc_Icon add.
+example:  
+`OmniDisc_Icon -update scsidisc -fs SCSI -drives 4`
 
-### \*OmniDisc_Icon -remove [-fs <fsname>] [-disc <discname>] [-drives <drives list>]
+### \*OmniDisc_Icon -remove [-fs _\<fsname\>_] [-disc _\<discname\>_] [-drives _\<drives list\>_]
 
-Removes an icon added wih *OmniDisc_Icon -add
+Removes an icon added wih `*OmniDisc_Icon -add`.
+
+example:  
+`OmniDisc_Icon -remove -fs ADFS`.
 
 ### \*OmniDisc_Icon -list
 
