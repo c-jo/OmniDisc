@@ -35,14 +35,6 @@ void baricon_delete_icon(int handle)
     delete_count += 1;
 }
 
-void baricon_redraw_icon(int handle)
-{
-}
-
-void baricon_resize_icon(int handle, char*t, char*v)
-{
-}
-
 static unsigned update_count = 0;
 static struct {
     char *text;
@@ -229,7 +221,7 @@ void test_positioning(void)
     CHECK_EQ(last_create.priority, 1)
 }
 
-void test_changes(void)
+void test_refresh(void)
 {
     FS adfs;
     BarIcon *baricon_list = 0;
@@ -243,8 +235,10 @@ void test_changes(void)
     init_fs(&adfs, fsnumber_adfs, "ADFS");
 
     create_count = 0;
+    update_count = 0;
+    delete_count = 0;
 
-    sprintf(adfs.drive[4].discname, "Harddisc4");
+    strcpy(adfs.drive[4].discname, "Harddisc4");
     baricon_list = baricon_update(baricon_list, &adfs, NULL);
 
     CHECK_EQ(create_count, 1);
@@ -254,24 +248,55 @@ void test_changes(void)
 
     sprintf(adfs.drive[4].discname, "Harddisk4");
 
-    baricon_refresh(baricon_list, &adfs, NULL);
+    baricon_refresh(baricon_list, &adfs, &icon);
 
     CHECK_EQ(create_count, 1);
     CHECK_EQ(update_count, 1);
-    CHECK_STRING(last_update.text, "Harddisk4");
-    CHECK_IS_NULL(last_update.validation);
+    CHECK_STRING(last_update.text,       "Harddisk4");
+    CHECK_STRING(last_update.validation, "Sswitcher");
 
+    strcpy(icon.sprite, "harddisc");
     baricon_refresh(baricon_list, &adfs, &icon);
 
     CHECK_EQ(create_count, 1);
     CHECK_EQ(update_count, 2);
-    CHECK_IS_NULL(last_update.text);
-    CHECK_STRING(last_update.validation, "Sswitcher");
+    CHECK_STRING(last_update.text ,      "Harddisk4");
+    CHECK_STRING(last_update.validation, "Sharddisc");
+}
+
+void test_cleanup(void)
+{
+    FS adfs;
+    BarIcon *baricon_list = 0;
+    Icon icon;
+    strcpy(icon.sprite, "harddisc");
+    icon.fsnumber = 8;
+    icon.disc[0] = '\0';
+    icon.drives = 1<<4 | 1<<5;
+    icon.next = NULL;
+
+    init_fs(&adfs, fsnumber_adfs, "ADFS");
+
+    create_count = 0;
+    update_count = 0;
+    delete_count = 0;
+
+    strcpy(adfs.drive[4].discname, "Harddisc4");
+    strcpy(adfs.drive[5].discname, "Harddisc5");
+
+    baricon_list = baricon_update(baricon_list, &adfs, &icon);
+
+    CHECK_EQ(create_count, 2);
+
+    baricon_list = baricon_update(baricon_list, NULL, NULL);
+
+    CHECK_EQ(delete_count, 2);
 }
 
 int main(void)
 {
     test_update();
     test_positioning();
-    test_changes();
+    test_refresh();
+    test_cleanup();
 }

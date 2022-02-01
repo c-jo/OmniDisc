@@ -126,6 +126,19 @@ static void baricon_position(FS *fs_list, BarIcon *baricon_list,
     }
 }
 
+/*******************************************************************
+ Function:      baricon_update
+ Description:   Update the icon bar icons based on the available
+                drives in the filing systems in fslist. Icons will
+                be created using sprites defined in iconlist.
+                icons will be created by calling baricon_create_icon
+                and deleted by calling baricon_delete_icon (see
+                above).
+ Parameters:    list     -> head of the baricon list
+                fslist   -> list of file systems
+                iconlist -> list of icons
+ Returns:       pointer to the new head of the list.
+ ******************************************************************/
 BarIcon *baricon_update(BarIcon *list, FS* fslist, Icon *iconlist)
 {
     FS *fs;
@@ -205,6 +218,17 @@ BarIcon *baricon_update(BarIcon *list, FS* fslist, Icon *iconlist)
     return list;
 }
 
+/*******************************************************************
+ Function:      baricon_refresh
+ Description:   Check all the icons in list to see if the text or
+                validation needs to be updated (because a disc name or
+                sprite has changed). Icons will be updated by calling
+                baricon_update_icon (see above).
+Parameters:    list     -> head of the baricon list
+                fslist   -> list of file systems
+                iconlist -> list of icons
+ Returns:       Nothing.
+ *****************************************************************/
 void baricon_refresh(BarIcon *list, FS* fslist, Icon *iconlist)
 {
     BarIcon *icon;
@@ -212,8 +236,8 @@ void baricon_refresh(BarIcon *list, FS* fslist, Icon *iconlist)
     {
         FS *fs = fs_find_by_number(fslist, icon->fsnumber);
         const char *new_sprite;
-        char *text = NULL,  *validation = NULL;
         char *discname = fs ? fs->drive[icon->drive].discname : "\0";
+        bool update = false;
 
         if (!fs || discname[0] == '\0')
             continue;
@@ -224,16 +248,17 @@ void baricon_refresh(BarIcon *list, FS* fslist, Icon *iconlist)
         if (strcmp(icon->validation+1, new_sprite))
         {
             strncpy((icon->validation)+1, new_sprite, 13);
-            validation = icon->validation;
+            update = true;
         }
 
         if (strcmp(icon->text, discname))
         {
             strncpy(icon->text, discname, 11);
-            text = icon->text;
+            update = true;
         }
 
-        baricon_update_icon(icon->handle, text, validation);
+        if (update)
+            baricon_update_icon(icon->handle, icon->text, icon->validation);
     }
 }
 

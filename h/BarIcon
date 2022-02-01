@@ -16,14 +16,39 @@ typedef struct BarIcon_s
     int  handle;
 } BarIcon;
 
-/* provided elsewhere */
-int  baricon_create_icon(char *text, char *validation, int buffer_size,
+/* callee-provided functions */
+
+/*******************************************************************
+ Function:      baricon_create_icon
+ Description:   CALLEE PROVIDED function to create an icon.
+ Parameters:    text        -> icon text
+                validation  -> icon validation, of the form Ssprite
+                buffer_szize = icon buffer size
+                window       = window handle / iconbar position
+                priority     = priority / icon to left or right
+ Returns:       Handle of the created icon.
+ ******************************************************************/
+int baricon_create_icon(char *text, char *validation, int buffer_size,
                          int window, int priority);
 
+/*******************************************************************
+ Function:      baricon_delete_icon
+ Description:   CALLEE PROVIDED function to delete an icon.
+ Parameters:    handle = handle of the icon created with
+                baricon_create_icon.
+ Returns:       Nothing
+ ******************************************************************/
 void baricon_delete_icon(int handle);
 
-void baricon_update_icon(int handle,
-                         char* new_text, char* new_validation);
+/*******************************************************************
+ Function:      baricon_update_icon
+ Description:   CALLEE PROVIDED function to update an icon.
+ Parameters:    handle = handle of the icon created with
+                text        -> new text
+                validation  -> new validation, of the form Ssprite
+ Returns:       Nothing
+ ******************************************************************/
+void baricon_update_icon(int handle, char* text, char* validation);
 
 /*******************************************************************
  Function:      baricon_update
@@ -40,6 +65,17 @@ void baricon_update_icon(int handle,
  ******************************************************************/
 BarIcon *baricon_update(BarIcon *list, FS* fslist, Icon *iconlist);
 
+/*******************************************************************
+ Function:      baricon_refresh
+ Description:   Check all the icons in list to see if the text or
+                validation needs to be updated (because a disc name or
+                sprite has changed). Icons will be updated by calling
+                baricon_update_icon (see above).
+Parameters:    list     -> head of the baricon list
+                fslist   -> list of file systems
+                iconlist -> list of icons
+ Returns:       Nothing.
+ *****************************************************************/
 void baricon_refresh(BarIcon *list, FS* fslist, Icon *iconlist);
 
 /*******************************************************************
