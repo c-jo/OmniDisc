@@ -52,7 +52,7 @@ jobs:
 
       # Build the module
       - echo +++ Module
-      - amu -f MakefileCJF ram
+      - amu -f MakeROBuild ram
 
       # Test that the module will load and die
       - echo + Test module load/kill
