@@ -1,8 +1,7 @@
-#ifndef FILERX_H
-#define FILERX_H
+#ifndef OMNIDISC_H
+#define OMNIDISC_H
 
 #include "bool.h"
-#include "Wimp.h"
 
 #include "FS.h"
 #include "Icon.h"
@@ -17,6 +16,7 @@ char *strdup(const char *src);
 extern unsigned task_handle;
 extern unsigned pollword;
 extern bool     sharefs;
+extern unsigned messagetrans[4];
 
 #define Pollword_FS    0x01
 #define Pollword_Drive 0x02

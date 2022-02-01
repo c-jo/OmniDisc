@@ -51,6 +51,7 @@ OBJS       = TestBarIcon \
              Icon \
              StringUtils \
              FSDefaults \
+             Errors \
 
 
 ifdef BUILD32

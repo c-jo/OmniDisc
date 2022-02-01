@@ -6,15 +6,11 @@
 #include "FSDefaults.h"
 #include "Icon.h"
 #include "StringUtils.h"
+#include "Errors.h"
 
 #ifdef FORTIFY
 #include "fortify.h"
 #endif
-
-
-static _kernel_oserror err_Memory      = { 0, "Couldn't allocate memory" };
-static _kernel_oserror err_NotFound    = { 0, "Icon not found." };
-static _kernel_oserror err_AlreadySet  = { 0, "Icon already set" };
 
 /*******************************************************************
  Function:      icon_add
@@ -38,12 +34,12 @@ _kernel_oserror *icon_add(Icon** list,
         if (icon->fsnumber == fsnumber &&
             !strcmp(icon->disc, disc ? disc : "") &&
             icon->drives == drives)
-            return &err_AlreadySet;
+            return get_error(Error_IconAlreadySet);
     }
 
     icon = malloc(sizeof(Icon));
     if (!icon)
-        return &err_Memory;
+        return get_error(Error_NoMemory);
 
     strcpy(icon->sprite, sprite);
     icon->fsnumber = fsnumber;
@@ -90,7 +86,7 @@ _kernel_oserror *icon_update(Icon** list, const char *sprite,
     }
 
     if (!updated)
-        return &err_NotFound;
+        return get_error(Error_IconNotFound);
 
     return 0;
 }
@@ -137,7 +133,7 @@ _kernel_oserror *icon_remove(Icon** list,
     *list = head;
 
     if (!removed)
-        return &err_NotFound;
+        return get_error(Error_IconNotFound);
 
     return 0;
 }

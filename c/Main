@@ -1,5 +1,7 @@
-#include "FilerX.h"
+#include "OmniDisc.h"
 #include "Tools.h"
+#include "Wimp.h"
+
 #include "swis.h"
 
 #include "kernel.h"
@@ -619,7 +621,7 @@ int main(int argc, char *argv[])
     _swi(Wimp_SlotSize, _INR(0,1), 16*1024, -1);
 
     _swi(Wimp_Initialise, _INR(0,3) | _OUT(1),
-             310, 0x4b534154, "FilerX", &message_list,
+             310, 0x4b534154, "OmniDisc", &message_list,
              &task_handle);
 
     make_menus();

@@ -1,12 +1,9 @@
 #include "FS.h"
 #include "StringUtils.h"
+#include "Errors.h"
 
 #include <stdlib.h>
 #include <string.h>
-
-static _kernel_oserror err_FS_Not_Found     = {0, "FS not found"};
-static _kernel_oserror err_FS_Already_Added = {0, "FS already added"};
-static _kernel_oserror err_Out_Of_Memory    = {0, "Out of memory" };
 
 /*******************************************************************
  Function:      fs_add
@@ -27,18 +24,18 @@ _kernel_oserror *fs_add(FS **list, fsparameters_t *params, FS** newfs)
     while (last && last->next)
     {
         if (last->fsparams->fsnumber == params->fsnumber)
-            return &err_FS_Already_Added;
+            return get_error(Error_FSAlreadyReg);
 
         last = last->next;
     }
     if (last && last->fsparams->fsnumber == params->fsnumber)
-        return &err_FS_Already_Added;
+        return get_error(Error_FSAlreadyReg);
 
     fs  = malloc(sizeof(FS));
     if (!fs)
     {
         *newfs = 0;
-        return &err_Out_Of_Memory;
+        return get_error(Error_NoMemory);
     }
 
     fs->fsparams = params;
@@ -95,7 +92,7 @@ _kernel_oserror* fs_remove(FS **list, const char *fsname)
     }
 
     if (!removed)
-        return &err_FS_Not_Found;
+        return get_error(Error_FSNotRegistered);
 
     *list = head;
     return 0;

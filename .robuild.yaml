@@ -56,9 +56,9 @@ jobs:
 
       # Test that the module will load and die
       - echo + Test module load/kill
-      - RMLoad rm32.FilerX
+      - RMLoad rm32.OmniDisc
       # We could do other runtime tests here
-      - RMKill FilerX
+      - RMKill OmniDisc
 
     # Outputs from the build are defined in artifacts
     # These are a list of artifacts to report directories or files.

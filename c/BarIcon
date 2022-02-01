@@ -54,7 +54,8 @@ static void baricon_position(FS *fs_list, BarIcon *baricon_list,
     {
         if (fs->fsparams->fsnumber == fsnumber)
         {
-            priority = fsdefaults_priority(fsnumber, fs->drive[drive].is_removeable);
+            priority = fsdefaults_priority(fsnumber,
+                                           fs->drive[drive].is_removeable);
         }
     }
 
@@ -118,11 +119,10 @@ static void baricon_position(FS *fs_list, BarIcon *baricon_list,
     }
     else
     {
-        /* There was no existing icon for this filing system, so we just place it on the
-         * left with the default priority for that filing system.
-         */
-        *pos  = -5;         // Left side, high
-        *icon = priority;   // priority
+        /* There was no existing icon for this filing system, so we just place
+         * it on the left with the default priority for that filing system. */
+        *pos  = -5;       // Left side, high
+        *icon = priority; // priority
     }
 }
 

@@ -1,0 +1,23 @@
+#include "Errors.h"
+#include "OmniDisc.h"
+
+static _kernel_oserror unknown = { Error_Unknown, "Unknown error" };
+
+static _kernel_oserror errors[] = {
+   { Error_NoMemory,        "Out of memory" },
+   { Error_FSNotRegistered, "File system not registered" },
+   { Error_FSAlreadyReg,    "File system already registered" },
+   { Error_FSCannotAdd,     "Cannot add file system" },
+   { Error_IconNotFound,    "Icon not found" },
+   { Error_IconAlreadySet,  "Icon already set" },
+};
+
+static int error_count = sizeof(errors) / sizeof(_kernel_oserror);
+
+_kernel_oserror *get_error(int errnum)
+{
+    if (errnum < Error_Base || errnum > (Error_Base + error_count))
+        return &unknown;
+
+    return &errors[errnum - Error_Base - 1];
+}
