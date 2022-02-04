@@ -1,4 +1,4 @@
-# Makefile for TaskRunner
+# Makefile for OmniDisc
 
 COMPONENT   = OmniDisc
 OBJS        = OmniDisc \

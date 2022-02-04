@@ -51,6 +51,8 @@ OBJS       = \
              o.StringUtils \
              o.Errors \
 
+# Documentation build
+DOCSRC = prminxml.filesystem_tools/xml
 
 FORTIFY   ?= no
 
