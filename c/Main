@@ -655,8 +655,9 @@ static void message_dataload(WimpUserMessageEvent* msg)
 
 int main(int argc, char *argv[])
 {
-    int message_list[] = { 0 }; // **TODO**
+    int message_list[] = { Wimp_MDataSave, Wimp_MDataLoad, Wimp_MQuit };
     bool quit = false;
+
     UNUSED(argc);
     UNUSED(argv);
 
@@ -705,6 +706,7 @@ int main(int argc, char *argv[])
             {
             WimpUserMessageEvent *msg = (WimpUserMessageEvent*)poll_block;
 
+            // Adding a message? Update messages_list too.
             switch (msg->hdr.action_code)
             {
             case Wimp_MQuit:

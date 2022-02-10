@@ -42,7 +42,7 @@ void test_match(void)
     strcpy(i1.disc, "15_30_Tue");
     CHECK_EQ(icon_match(&i1, fsnumber_adfs,"HardDisc4",4), 0);
     CHECK_GT(icon_match(&i1, fsnumber_adfs,"15_30_Tue",0), 0);
-    CHECK_EQ(icon_match(&i1,fsnumber_SCSIFS,"15_30_Tue",0), 0);
+    CHECK_EQ(icon_match(&i1, fsnumber_SCSIFS,"15_30_Tue",0), 0);
 
     // Match a drive number
     strcpy(i1.disc, "");
