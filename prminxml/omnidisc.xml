@@ -1,0 +1,495 @@
+<?xml version="1.0"?>
+<!DOCTYPE riscos-prm PUBLIC "-//Gerph//DTD PRM documentation 1.03//EN"
+                            "http://gerph.org/dtd/103/prm.dtd">
+
+<riscos-prm>
+<chapter title="OmniDisc">
+
+<section title="Introduction">
+<p>
+OmniDisc puts an icon on the icon bar for each drive of the filing systems it has been told
+about, and gives each a menu of the operations that can be performed on that drive. It works
+with the filing systems that are based on FileCore (ADFS, SCSIFS, SDFS, RAMFS and similar), and it
+is started with the desktop as one of its filers. Directories are displayed by the Filer: OmniDisc
+asks it to open them.
+</p>
+<p>
+OmniDisc does not format, verify or check discs itself. It starts the programs which have
+been set up for those operations, and passes them the details of the drive. Showing the contents
+of a directory, copying files and saving them belong to the Filer and the applications that save
+to the drive.
+</p>
+</section>
+
+<section title="Overview">
+<p>
+OmniDisc is a module which runs as a desktop task. The user, or the system's boot sequence,
+tells it which filing systems to show with <reference type="command" name="OmniDisc_FS" />, and
+may choose the sprites its icons use with <reference type="command" name="OmniDisc_Icon" />.
+The task is then started as part of the desktop with <userinput>*Desktop</userinput>; it is
+not started by running <reference type="command" name="Desktop_OmniDisc" /> directly. Drives which are
+shown by OmniDisc should not also be shown by another filer.
+</p>
+<p>
+For each drive that exists on a registered filing system there is one icon, showing the sprite
+chosen for that drive and, below it, the name of the disc in it. Clicking on the icon opens the
+disc's root directory in the Filer, and the Menu button opens a menu of the operations that can
+be performed. Files dragged to the icon are opened in the root directory of the disc, and
+applications saving to the icon are given a filename in it.
+</p>
+</section>
+
+<section title="Technical details">
+
+<subsection title="Starting and stopping">
+<p>
+OmniDisc is started with the desktop's other filers. It answers
+<reference type="service" name="StartFiler" /> by giving the command
+<userinput>%Desktop_OmniDisc</userinput> and claiming the call, which makes the desktop start the
+OmniDisc task. OmniDisc uses the Filer to display the contents of a drive, so the Filer must also be
+running.
+</p>
+<p>
+The task registers itself with the Wimp as <userinput>OmniDisc</userinput>, as a Wimp 3.10
+task, and quits when it receives a Quit message. When the Filer is about to die, OmniDisc
+tells its task to quit; after a reset it forgets that it has a task.
+</p>
+</subsection>
+
+<subsection title="Filing systems and drives">
+<p>
+A filing system is registered with OmniDisc by name. Only a filing system that is built on
+FileCore and has a disc operations SWI can be registered: OmniDisc looks for
+<userinput>&lt;name&gt;_DiscOp</userinput>, and if there is no such SWI tries the name with
+<userinput>FS</userinput> added or taken off (so <userinput>SCSI</userinput> finds
+<userinput>SCSIFS_DiscOp</userinput>). The names <userinput>RAM</userinput> and <userinput>RAMFS</userinput>
+both find the SWIs of RamFS. It also uses the filing system's <userinput>_Drives</userinput>,
+<userinput>_MiscOp</userinput> and <userinput>_DescribeDisc</userinput> SWIs if it has them.
+</p>
+<p>
+A filing system can have up to eight drives, numbered 0 to 7. Drives 0 to 3 are treated as
+floppy discs, and the others as hard discs. When a filing system is registered OmniDisc finds the
+drives it has, and afterwards keeps up to date with them as the filing system reports drives
+being added and removed with the upcalls
+<reference type="upcall" name="DriveAdded" /> and <reference type="upcall" name="DriveRemoved" />.
+</p>
+<p>
+The name shown under a drive's icon is the name of the disc in it, as the filing system describes
+it. For a floppy disc drive the name is shown only if the filing system was registered with
+<userinput>-fdnames</userinput>, as reading it requires the disc to be accessed; otherwise, and for any
+drive whose disc has no name, the icon is labelled <userinput>:n</userinput>, where n is the drive
+number.
+</p>
+</subsection>
+
+<subsection title="Icon sprites">
+<p>
+The sprite for a drive's icon is chosen from the icons set with
+<reference type="command" name="OmniDisc_Icon" />. Each such icon says which filing system, which
+disc and which drives it applies to, and may leave any of these out, to apply to any. For a
+drive, every icon which applies is given a score, and the highest score is used; when two have
+the same score the one which was added first is used. The score is the sum of
+</p>
+<p>
+<value-table head-number="Score" head-value="For an icon which names">
+ <value number="1">a filing system (all icons score 1 more than this, so an icon which names nothing scores 1)</value>
+ <value number="2">drives which include this drive</value>
+ <value number="3">a disc with this name, compared without regard to case</value>
+</value-table>
+</p>
+<p>
+An icon which names a filing system, a disc or drives that this drive does not match does not apply
+to it at all. A more specific icon therefore always wins over a less specific one: an icon for a
+particular disc on a filing system beats one for all the drives of that filing system.
+</p>
+<p>
+If no icon applies, the sprite is a default, chosen by the filing system and whether it is one of
+the floppy drives (0 to 3):
+</p>
+<p>
+<value-table head-number="Filing system" head-value="Sprite">
+ <value number="RAMFS"><userinput>ramfs</userinput></value>
+ <value number="Net"><userinput>fileserver</userinput></value>
+ <value number="ResourceFS"><userinput>romapps</userinput></value>
+ <value number="CDFS"><userinput>cddisc</userinput></value>
+ <value number="ShareFS"><userinput>file_bda</userinput></value>
+ <value number="any other">floppy drives: <userinput>floppydisc</userinput>; other drives: <userinput>harddisc</userinput></value>
+</value-table>
+</p>
+<p>
+The sprites are taken from the Wimp sprite pool.
+</p>
+</subsection>
+
+<subsection title="Order of the icons on the icon bar">
+<p>
+The icons are placed on the icon bar by priority, so drives of the same kind are grouped together.
+OmniDisc uses the priorities of the icon bar specification:
+</p>
+<p>
+<value-table head-number="Priority" head-value="Drives">
+ <value number="&hex;76000000">Scanners</value>
+ <value number="&hex;74000000">CD-ROM</value>
+ <value number="&hex;70000000">Hard discs (any fixed writeable drive)</value>
+ <value number="&hex;68000000">Floppy discs (any removable writeable drive)</value>
+ <value number="&hex;60000000">Network filing systems</value>
+ <value number="&hex;40000000">Volatile filing systems, such as RAMFS</value>
+ <value number="&hex;0F000000">Printers</value>
+ <value number="&hex;04000000">Accelerators, such as ResourceFS</value>
+</value-table>
+</p>
+<p>
+The priority of a drive is that for volatile filing systems for RAMFS, for network filing systems for
+Net and ShareFS, for CD-ROM for CDFS, and for accelerators for ResourceFS. For any other filing system it is
+that of floppy discs if the drive is removable, and that of hard discs if it is not. Icons are created
+in the order in which the filing systems are registered, and are placed according to that within
+a priority.
+</p>
+</subsection>
+
+<subsection title="Using the icons">
+<p>
+Clicking Select on a drive's icon opens its root directory in the Filer, as
+<userinput>%Filer_OpenDir fs::disc.$</userinput>, using the drive number if the disc has no name.
+</p>
+<p>
+Clicking Menu on a drive's icon opens a menu, titled with the drive (<userinput>ADFS::4</userinput>),
+which has these entries. Choosing an entry with Adjust leaves the menu open.
+</p>
+<p>
+<value-table head-number="Entry" head-value="Action">
+ <value number="Name disc">A writable field, which takes the new name of the disc (up to ten
+ characters, without spaces or the characters <userinput>$ &amp; % @ \ ^ : . # * " |</userinput>). Closes the
+ drive's Filer directory and renames the disc.</value>
+ <value number="Dismount">Dismounts the disc, as <userinput>fs:%Dismount :discname</userinput>.</value>
+ <value number="Eject">Not implemented.</value>
+ <value number="Format...">Starts the program set for formatting the drive. Nothing happens if there is none.</value>
+ <value number="Backup...">Not implemented.</value>
+ <value number="Share">Has a submenu of <userinput>Not shared</userinput>, <userinput>Share protected</userinput>
+ and <userinput>Share unprotected</userinput>, the current style ticked, which shares the disc
+ with ShareFS (<userinput>ShareFS_CreateShare</userinput> and <userinput>ShareFS_StopShare</userinput>), under
+ the disc's name. It needs ShareFS to be running.</value>
+ <value number="Verify...">Starts the program set for verifying the drive. Nothing happens if there is none.</value>
+ <value number="Check...">Starts the program set for checking the drive. Nothing happens if there is none.</value>
+ <value number="Free...">Shows the free space on the drive, as <userinput>%ShowFree -FS fs drive</userinput>.</value>
+</value-table>
+</p>
+</subsection>
+
+<subsection title="Saving and dropping files on an icon">
+<p>
+When an application saves a file by dragging its icon to a drive's icon, the application sends a
+<reference type="message" name="DataSave" /> to OmniDisc. OmniDisc replies with
+<reference type="message" name="DataSaveAck" />, giving the leaf name as a path in the root directory
+of the disc (<userinput>fs::disc.$.leafname</userinput>), so the file is saved there.
+</p>
+<p>
+When files are dragged from the Filer to the icon, OmniDisc is sent
+<reference type="message" name="DataLoad" />. It replies with
+<reference type="message" name="FilerDevicePath" />, giving the root directory of the disc as the
+path to which the Filer should open the files, and then asks the Filer to open that directory with
+<reference type="message" name="FilerOpenDir" />. A <reference type="message" name="DataLoad" />
+which did not come from the Filer is acknowledged with <reference type="message" name="DataLoadAck" />,
+and the directory is opened.
+</p>
+</subsection>
+
+<subsection title="External tools">
+<p>
+The Format, Verify and Check entries of the menu start programs which are set up for the
+purpose. For each of these OmniDisc looks for an alias, for the kind of disc (<userinput>Floppy</userinput>
+for drives 0 to 3 and <userinput>Hard</userinput> for the others) and the filing system, and if it is not set, one
+for the kind of disc alone. For Format of a floppy disc on ADFS it looks for
+<sysvar>Alias$@FSFormat_Floppy_ADFS</sysvar> and then <sysvar>Alias$@FSFormat_Floppy</sysvar>. The menu
+entry does nothing if neither is set. See
+<reference type="sysvar" name="Alias$@FS*_*_*" /> and <reference type="sysvar" name="Alias$@FS*_*" />.
+</p>
+<p>
+The program is started in the desktop with <userinput>Wimp_StartTask</userinput>, with the value of the
+alias followed by the details of the drive:
+</p>
+<p>
+<extended-example type="format">
+&lt;alias value&gt; -op &lt;operation&gt; -type &lt;disc kind&gt; -driver &lt;filing system&gt; -device &lt;drive number&gt;
+</extended-example>
+</p>
+<p>
+where the operation is <userinput>Format</userinput>, <userinput>Verify</userinput> or
+<userinput>Check</userinput>, and the disc kind is <userinput>Floppy</userinput> or
+<userinput>Hard</userinput>.
+</p>
+</subsection>
+
+<subsection title="Modules and messages used">
+<p>
+OmniDisc handles these service calls: <reference type="service" name="Reset" />,
+<reference type="service" name="StartFiler" />, <reference type="service" name="StartedFiler" />,
+<reference type="service" name="FilerIsDying" />, <reference type="service" name="MessageFileClosed" />,
+and the ShareFS starting and dying services, which tell it whether the Share menu entry can be used.
+</p>
+<p>
+It claims <userinput>UpCallV</userinput> to learn of <reference type="upcall" name="DriveAdded" /> and
+<reference type="upcall" name="DriveRemoved" />, and passes every upcall on.
+</p>
+<p>
+The messages it receives are <reference type="message" name="Quit" />,
+<reference type="message" name="DataSave" /> and <reference type="message" name="DataLoad" />; those it
+sends are <reference type="message" name="DataSaveAck" />, <reference type="message" name="DataLoadAck" />,
+<reference type="message" name="FilerDevicePath" /> and <reference type="message" name="FilerOpenDir" />.
+</p>
+</subsection>
+
+</section>
+
+<section title="System variables">
+
+<sysvar-definition name="Alias$@FS*_*_*" description="Program to run for a disc operation on a filing system">
+<use>
+<p>
+The name is <userinput>Alias$@FS</userinput>, then the operation (<userinput>Format</userinput>,
+<userinput>Verify</userinput> or <userinput>Check</userinput>), an underscore, the kind of disc
+(<userinput>Floppy</userinput> or <userinput>Hard</userinput>), an underscore, and the name of the filing
+system, as it was registered with <reference type="command" name="OmniDisc_FS" />. For example,
+<sysvar>Alias$@FSVerify_Hard_SCSIFS</sysvar>.
+</p>
+<p>
+Its value is the command, or the program, which OmniDisc starts for that operation on drives of that
+kind of the filing system. It is given the arguments described in External tools. It is used in
+preference to <reference type="sysvar" name="Alias$@FS*_*" />.
+</p>
+</use>
+<example>
+<p><userinput>Set Alias$@FSFormat_Floppy_ADFS /&lt;Boot$Dir&gt;.Tools.FormatADFS</userinput></p>
+</example>
+<related>
+<reference type="sysvar" name="Alias$@FS*_*" />
+</related>
+</sysvar-definition>
+
+<sysvar-definition name="Alias$@FS*_*" description="Program to run for a disc operation on any filing system">
+<use>
+<p>
+The name is <userinput>Alias$@FS</userinput>, then the operation (<userinput>Format</userinput>,
+<userinput>Verify</userinput> or <userinput>Check</userinput>), an underscore, and the kind of disc
+(<userinput>Floppy</userinput> or <userinput>Hard</userinput>). Its value is the command which OmniDisc
+starts for that operation on drives of that kind, when there is no variable for the filing system.
+</p>
+</use>
+<example>
+<p><userinput>Set Alias$@FSFormat_Hard /&lt;Boot$Dir&gt;.Tools.HForm</userinput></p>
+</example>
+<related>
+<reference type="sysvar" name="Alias$@FS*_*_*" />
+</related>
+</sysvar-definition>
+
+</section>
+
+<section title="Error messages">
+<p>
+The module allocates the errors from &hex;821A00.
+</p>
+
+<error-definition name="OmniDisc_NoMemory" number="821A01" description="Out of memory">
+<use><p>There was not enough memory to add the filing system or icon, or to read a command.</p></use>
+</error-definition>
+
+<error-definition name="OmniDisc_FSNotRegistered" number="821A02" description="File system not registered">
+<use><p>A filing system named in <reference type="command" name="OmniDisc_FS" /> or <reference type="command" name="OmniDisc_Icon" /> has not been registered with OmniDisc.</p></use>
+</error-definition>
+
+<error-definition name="OmniDisc_FSAlreadyReg" number="821A03" description="File system already registered">
+<use><p>The filing system given to <reference type="command" name="OmniDisc_FS" /> with <userinput>-add</userinput> is already registered.</p></use>
+</error-definition>
+
+<error-definition name="OmniDisc_FSCannotAdd" number="821A04" description="Cannot add file system">
+<use><p>The filing system given to <reference type="command" name="OmniDisc_FS" /> with <userinput>-add</userinput> is not one OmniDisc can show: it has no disc operations SWI, so it is not built on FileCore, or it is not running.</p></use>
+</error-definition>
+
+<error-definition name="OmniDisc_IconNotFound" number="821A05" description="Icon not found">
+<use><p>There is no icon with the filing system, disc and drives given to <reference type="command" name="OmniDisc_Icon" /> with <userinput>-update</userinput> or <userinput>-remove</userinput>.</p></use>
+</error-definition>
+
+<error-definition name="OmniDisc_IconAlreadySet" number="821A06" description="Icon already set">
+<use><p>An icon has already been set for the filing system, disc and drives given to <reference type="command" name="OmniDisc_Icon" /> with <userinput>-add</userinput>.</p></use>
+</error-definition>
+
+<error-definition name="OmniDisc_Unknown" number="821A00" description="Unknown error">
+<use><p>An error which the module does not describe.</p></use>
+</error-definition>
+
+</section>
+
+<section title="*Commands">
+
+<command-definition name="Desktop_OmniDisc"
+                    description="Start the OmniDisc desktop task">
+<use>
+<p>
+This command starts the OmniDisc task in the desktop. It is the command which the module gives the
+desktop to run in place of the Filer's icon bar, and it is not meant to be used directly: use
+<userinput>*Desktop</userinput> to start the desktop.
+</p>
+</use>
+<related>
+<reference type="command" name="OmniDisc_FS" />
+<reference type="command" name="OmniDisc_Icon" />
+</related>
+</command-definition>
+
+<command-definition name="OmniDisc_FS"
+                    description="Add or remove a filing system, or list those registered">
+<syntax>
+ <switch name="add"><userreplace>fsname</userreplace></switch>
+ <optional><switch name="fdnames" /></optional>
+</syntax>
+<syntax>
+ <switch name="remove"><userreplace>fsname</userreplace></switch>
+</syntax>
+<syntax>
+ <switch name="list" />
+</syntax>
+
+<parameter switch="add" name="fsname">The name of the filing system to add to OmniDisc.</parameter>
+<parameter switch="fdnames">Show the names of the discs in the floppy disc drives (0 to 3) under their icons,
+rather than the drive number.</parameter>
+<parameter switch="remove" name="fsname">The name of the filing system to remove from OmniDisc. Its icons go,
+and so do the icons which were set for it.</parameter>
+<parameter switch="list">List the filing systems which are registered, with the number of each and its
+drives that have discs in them.</parameter>
+
+<use>
+<p>
+This command registers a filing system, so that OmniDisc shows an icon for each of its drives, removes
+one, or lists them. The filing system has to be one that OmniDisc can show, as described in
+Filing systems and drives. The icons appear on the icon bar in the order that the filing systems
+are registered in.
+</p>
+<p>
+The list gives the name of each filing system, its number, and then for each drive that has a disc,
+the number of the drive and the name of the disc (nothing if it has no name).
+</p>
+</use>
+
+<example>
+<command>*OmniDisc_FS -add ADFS</command>
+</example>
+<example>
+<command>*OmniDisc_FS -add SDFS -fdnames</command>
+</example>
+<example>
+<command>*OmniDisc_FS -remove ADFS</command>
+</example>
+
+<related>
+<reference type="command" name="OmniDisc_Icon" />
+</related>
+</command-definition>
+
+<command-definition name="OmniDisc_Icon"
+                    description="Choose the sprite used for a filing system, disc or drives, or list the choices">
+<syntax>
+ <switch name="add"><userreplace>sprite</userreplace></switch>
+ <optional><switch name="fs"><userreplace>fsname</userreplace></switch></optional>
+ <optional><switch name="disc"><userreplace>discname</userreplace></switch></optional>
+ <optional><switch name="drives"><userreplace>drives</userreplace></switch></optional>
+</syntax>
+<syntax>
+ <switch name="update"><userreplace>sprite</userreplace></switch>
+ <optional><switch name="fs"><userreplace>fsname</userreplace></switch></optional>
+ <optional><switch name="disc"><userreplace>discname</userreplace></switch></optional>
+ <optional><switch name="drives"><userreplace>drives</userreplace></switch></optional>
+</syntax>
+<syntax>
+ <switch name="remove" />
+ <optional><switch name="fs"><userreplace>fsname</userreplace></switch></optional>
+ <optional><switch name="disc"><userreplace>discname</userreplace></switch></optional>
+ <optional><switch name="drives"><userreplace>drives</userreplace></switch></optional>
+</syntax>
+<syntax>
+ <switch name="list" />
+</syntax>
+
+<parameter switch="add" name="sprite">The name of a sprite in the Wimp sprite pool, to use for the icon.
+It has to exist when the icon is added.</parameter>
+<parameter switch="update" name="sprite">The name of the sprite to change the icon to.</parameter>
+<parameter switch="remove">Remove the icon with the filing system, disc and drives given.</parameter>
+<parameter switch="list">List the icons which have been set.</parameter>
+<parameter switch="fs" name="fsname">The filing system the icon is for, which has to be registered.
+If it is not given the icon is for any filing system.</parameter>
+<parameter switch="disc" name="discname">The name of the disc the icon is for, which is compared without
+regard to case. If it is not given the icon is for any disc.</parameter>
+<parameter switch="drives" name="drives">The drives the icon is for, as a string of the digits of the drive
+numbers, such as <userinput>45</userinput> for drives 4 and 5, or <userinput>0123</userinput> for all the floppy
+drives. If it is not given the icon is for any drive.</parameter>
+
+<use>
+<p>
+This command sets the sprite which is used for the icons of drives, or lists those set. An icon applies to
+the drives which match the filing system, disc and drives that were given when it was set, and any of
+them may be left out to match any. When more than one icon applies to a drive the most specific is
+used, as described in Icon sprites. A drive that no icon applies to gets the default sprite for its
+filing system.
+</p>
+<p>
+To update or remove an icon, the filing system, disc and drives must be given exactly as they were when
+it was added. The error <reference type="error" name="OmniDisc_IconNotFound" /> is returned if there is no
+such icon, and <reference type="error" name="OmniDisc_IconAlreadySet" /> if an icon is added which is
+already set.
+</p>
+<p>
+The list shows the sprite, the filing system, the disc and the drives of each icon, with
+<userinput>&lt;ANY&gt;</userinput> where it was left out.
+</p>
+</use>
+
+<example>
+<command>*OmniDisc_Icon -add harddisc -fs ADFS</command>
+</example>
+<example>
+<command>*OmniDisc_Icon -add floppy -fs SCSI -disc MyDisc</command>
+</example>
+<example>
+<command>*OmniDisc_Icon -add harddisc -fs SCSI -drives 4</command>
+</example>
+<example>
+<command>*OmniDisc_Icon -add sdcard -fs SDFS -disc MyCard -drives 0</command>
+</example>
+<example>
+<command>*OmniDisc_Icon -update scsidisc -fs SCSI -drives 4</command>
+</example>
+<example>
+<command>*OmniDisc_Icon -remove -fs ADFS</command>
+</example>
+
+<related>
+<reference type="command" name="OmniDisc_FS" />
+</related>
+</command-definition>
+
+</section>
+
+</chapter>
+
+<!-- MetaData -->
+<meta>
+ <maintainer>
+  <email name="Charles Ferguson" address="gerph@gerph.org"/>
+ </maintainer>
+ <disclaimer>
+  <p>
+  &copy; Chris Johns, 2022. Distributed under the MIT License.
+  </p>
+ </disclaimer>
+
+ <history>
+  <revision number="1" author="Charles Ferguson" date="9 Oct 2026" title="Initial documentation">
+   <change>Documented the module's commands, system variables and errors in PRM-in-XML format.</change>
+  </revision>
+ </history>
+
+ <related>
+  <reference type="document" href="filesystem_tools" name="File system management tools"/>
+ </related>
+</meta>
+</riscos-prm>
